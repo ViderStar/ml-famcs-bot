@@ -1,0 +1,186 @@
+{
+ "key": "lapshin-petr",
+ "fio": "Лапшин Пётр",
+ "repo": "https://github.com/lapshin-petr/ml-course-homeworks",
+ "status": "ok",
+ "reason": "",
+ "certificate": false,
+ "passed_hw": 0,
+ "total_hw": 12,
+ "homeworks": {
+  "hw01": {
+   "title": "Настройка окружения, NumPy и Pandas",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw02": {
+   "title": "Разведочный анализ данных (EDA)",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw03": {
+   "title": "KNN — метод k ближайших соседей",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw04": {
+   "title": "Линейная регрессия",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw05": {
+   "title": "Логистическая регрессия с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw06": {
+   "title": "Наивный Байес с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw07": {
+   "title": "Деревья решений",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw08": {
+   "title": "SVM — метод опорных векторов",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw09": {
+   "title": "Случайный лес",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw10": {
+   "title": "Градиентный бустинг",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw11": {
+   "title": "Подбор гиперпараметров и интерпретируемость",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw12": {
+   "title": "Кластеризация II — DBSCAN",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw13": {
+   "title": "Снижение размерности — PCA, t-SNE, UMAP",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  }
+ },
+ "similarity": [],
+ "portrait": {
+  "portrait": "Сильная сторона — аккуратность с данными; слабее пока с обоснованием выбора модели.",
+  "growth": [
+   {
+    "topic": "hw12",
+    "title": "Кластеризация II — DBSCAN: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Кластеризация",
+      "url": "https://education.yandex.ru/handbook/ml/article/klasterizaciya"
+     }
+    ]
+   },
+   {
+    "topic": "hw02",
+    "title": "Разведочный анализ данных (EDA): стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Задание HW02 (чек-лист EDA)",
+      "url": "rubrics/tasks/hw02.md"
+     }
+    ]
+   }
+  ],
+  "next_steps": "Собери небольшой pet-проект на своих данных — это лучше любого учебного датасета."
+ }
+}

@@ -1,0 +1,275 @@
+{
+ "key": "zinovev-vadim",
+ "fio": "Зиновьев Вадим",
+ "repo": "https://github.com/zinovev-vadim/ml-course-homeworks",
+ "status": "ok",
+ "reason": "",
+ "certificate": false,
+ "passed_hw": 1,
+ "total_hw": 12,
+ "homeworks": {
+  "hw01": {
+   "title": "Настройка окружения, NumPy и Pandas",
+   "status": "passed",
+   "notebook": "hw01/hw01_solution.ipynb",
+   "required_passed": 8,
+   "required_total": 8,
+   "reviewed_by_model": true,
+   "strengths": "Графики подписаны и читаются без пояснений: оси, единицы, легенда на месте.",
+   "summary": "Основное сделано, но выводов не хватает: допиши, что именно показал результат.",
+   "findings": [
+    {
+     "code": "common.text_contradicts_output",
+     "severity": "major",
+     "title": "Выводы расходятся с результатами в ноутбуке",
+     "detail": "",
+     "comment": "Выводы расходятся с результатами в ноутбуке. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ]
+     ],
+     "article": "catalog/common/text_contradicts_output.md"
+    },
+    {
+     "code": "common.no_conclusions",
+     "severity": "major",
+     "title": "Нет текстовых выводов",
+     "detail": "",
+     "comment": "Нет текстовых выводов. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ],
+      [
+       "Яндекс.Хендбук — первые шаги",
+       "https://education.yandex.ru/handbook/ml/article/pervie-shagi"
+      ]
+     ],
+     "article": "catalog/common/no_conclusions.md"
+    },
+    {
+     "code": "hw01.plots",
+     "severity": "major",
+     "title": "Нет гистограммы или тепловой карты корреляций",
+     "detail": "",
+     "comment": "Нет гистограммы или тепловой карты корреляций. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Задание HW01",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: визуализация данных в Python",
+       "https://habr.com/ru/companies/ods/articles/323210/"
+      ],
+      [
+       "matplotlib: быстрый старт",
+       "https://matplotlib.org/stable/users/explain/quick_start.html"
+      ]
+     ],
+     "article": "catalog/hw01/plots.md"
+    },
+    {
+     "code": "common.no_effect_call",
+     "severity": "major",
+     "title": "Вызов не меняет данные и результат не сохраняется",
+     "detail": "",
+     "comment": "Вызов не меняет данные и результат не сохраняется. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "pandas: почему inplace не нужен",
+       "https://pandas.pydata.org/docs/whatsnew/v2.0.0.html#copy-on-write-improvements"
+      ]
+     ],
+     "article": "catalog/common/no_effect_call.md"
+    }
+   ]
+  },
+  "hw02": {
+   "title": "Разведочный анализ данных (EDA)",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw03": {
+   "title": "KNN — метод k ближайших соседей",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw04": {
+   "title": "Линейная регрессия",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw05": {
+   "title": "Логистическая регрессия с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw06": {
+   "title": "Наивный Байес с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw07": {
+   "title": "Деревья решений",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw08": {
+   "title": "SVM — метод опорных векторов",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw09": {
+   "title": "Случайный лес",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw10": {
+   "title": "Градиентный бустинг",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw11": {
+   "title": "Подбор гиперпараметров и интерпретируемость",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw12": {
+   "title": "Кластеризация II — DBSCAN",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw13": {
+   "title": "Снижение размерности — PCA, t-SNE, UMAP",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  }
+ },
+ "similarity": [],
+ "portrait": {
+  "portrait": "Видно, что практика даётся легче теории: формулы стоит проговорить ещё раз.",
+  "growth": [
+   {
+    "topic": "hw12",
+    "title": "Кластеризация II — DBSCAN: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Кластеризация",
+      "url": "https://education.yandex.ru/handbook/ml/article/klasterizaciya"
+     }
+    ]
+   },
+   {
+    "topic": "hw10",
+    "title": "Градиентный бустинг: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Задание HW10",
+      "url": "rubrics/tasks/hw10.md"
+     }
+    ]
+   }
+  ],
+  "next_steps": "Перечитай главу Хендбука про валидацию и переделай последнюю домашку."
+ }
+}

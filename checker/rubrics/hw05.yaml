@@ -1,0 +1,64 @@
+id: hw05
+title: Логистическая регрессия с нуля
+kind: template
+task: null   # задание внутри ноутбука-заготовки
+template: logreg_practice_student.ipynb
+signature:
+  strong: [MyLogisticRegressionGD, compute_log_loss, forward_backward, sigmoid]
+  weak: ["loss_history", "predict_proba", "roc_auc_score", "load_breast_cancer",
+         "LogisticRegression", "log_loss", "learning_rate", "confusion_matrix", "gradient"]
+  filename: [hw05, logreg, log_reg, logistic, логистическ]
+checks:
+  - id: split_scale
+    title: "Шаг 1: разделение данных и стандартизация"
+    required: true
+    kind: rule
+    all_regex: ['train_test_split', 'StandardScaler']
+  - id: sigmoid
+    title: "Шаг 2: сигмоида реализована"
+    required: true
+    kind: rule
+    any_regex: ['def\s+sigmoid']
+  - id: log_loss
+    title: "Шаг 3: log-loss реализован"
+    required: true
+    kind: rule
+    any_regex: ['def\s+compute_log_loss']
+  - id: gradient_step
+    title: "Шаг 4: шаг градиентного спуска"
+    required: true
+    kind: rule
+    any_regex: ['def\s+forward_backward']
+  - id: model_class
+    title: "Шаг 5: модель собрана в класс"
+    required: true
+    kind: rule
+    any_regex: ['class\s+MyLogisticRegressionGD']
+  - id: metrics
+    title: "Шаг 7: метрики качества своей модели"
+    required: true
+    kind: rule
+    any_regex: ['accuracy|precision|recall|f1']
+  - id: roc
+    title: "Шаг 8: confusion matrix и ROC-кривая"
+    required: true
+    kind: rule
+    all_regex: ['confusion_matrix|ConfusionMatrix', 'roc_(curve|auc)|RocCurveDisplay']
+  - id: compare_sklearn
+    title: "Шаг 9–10: сравнение со scikit-learn, сводная таблица"
+    required: true
+    kind: rule
+    all_regex: ['LogisticRegression', 'DataFrame']
+  - id: threshold
+    title: "Шаг 11: эксперимент с порогом классификации"
+    required: true
+    kind: rule
+    any_regex: ['threshold|порог|0\.3.*0\.7|thr']
+  - id: numerically_stable
+    title: Сигмоида и log-loss численно устойчивы (клиппинг, без log(0))
+    required: false
+    kind: llm
+  - id: final_questions
+    title: Даны текстовые ответы на финальные вопросы
+    required: true
+    kind: llm

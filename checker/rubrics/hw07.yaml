@@ -1,0 +1,59 @@
+id: hw07
+title: Деревья решений
+kind: template
+task: null
+template: decision-tree-empty-cells.ipynb
+signature:
+  strong: [ccp_alpha, cost_complexity_pruning_path, clf_prepruned, clf_postpruned]
+  weak: ["DecisionTreeClassifier", "plot_tree", "max_leaf_nodes", "SimpleImputer", "gini", "entropy"]
+  filename: [hw07, tree, дерев, decision]
+# ВАЖНО: по деревьям решений задания не существует. В `decision-tree-empty-cells.ipynb`
+# нет ни «TODO», ни «YOUR CODE HERE», ни единого вопроса — это демонстрационный
+# ноутбук лекции, полностью написанный преподавателем; пустая ячейка одна, под
+# заголовком «Неустойчивость дерева», и никакой формулировки задания к ней нет.
+# Поэтому все содержательные пункты справочные, а зачёт определяется тем, что
+# ноутбук сохранён в репозитории и запускается.
+# Решение преподавателей: тема исключена из зачёта, сертификат считается из 12 домашек.
+# Отчёт по hw07 всё равно формируется — просто не влияет на итог.
+graded: false   # задания по деревьям не выдавалось — тема вне зачёта
+check_scope: full   # заготовка роздана решённой: пункты справочные, шум не нужен
+checks:
+  - id: base_tree
+    title: Обучено дерево классификации
+    required: false
+    kind: rule
+    any_regex: ['DecisionTreeClassifier']
+  - id: prepruning
+    title: Pre-pruning — ограничения глубины и листьев
+    required: false
+    kind: rule
+    any_regex: ['max_depth|min_samples_leaf|max_leaf_nodes|min_samples_split']
+  - id: postpruning
+    title: Post-pruning через ccp_alpha
+    required: false
+    kind: rule
+    any_regex: ['ccp_alpha']
+  - id: grid
+    title: Поиск по сетке лучших гиперпараметров
+    required: false
+    kind: rule
+    any_regex: ['GridSearchCV|RandomizedSearchCV|ParameterGrid']
+  - id: missing
+    title: Работа с пропусками
+    required: false
+    kind: rule
+    any_regex: ['SimpleImputer|fillna|nan']
+  - id: instability
+    title: Показана неустойчивость дерева
+    required: false
+    kind: rule
+    any_regex: ['random_state|неустойчив|RandomState']
+  - id: visualize
+    title: Структура дерева визуализирована или выведена
+    required: false
+    kind: rule
+    any_regex: ['plot_tree|export_text|export_graphviz']
+  - id: interpretation
+    title: Есть содержательная интерпретация структуры дерева
+    required: false
+    kind: llm

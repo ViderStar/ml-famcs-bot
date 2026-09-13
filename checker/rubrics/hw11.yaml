@@ -1,0 +1,63 @@
+id: hw11
+title: Подбор гиперпараметров и интерпретируемость
+kind: template
+task: null
+template: hp_interp_practice_student.ipynb
+signature:
+  strong: [PartialDependenceDisplay, TreeExplainer, permutation_importance, best_values_over_time]
+  weak: ["shap", "RandomizedSearchCV", "GridSearchCV", "optuna", "create_study", "ICE"]
+  filename: [hw11, hp_interp, interp, hyper, гиперпараметр, интерпрет, shap]
+checks:
+  - id: baselines
+    title: "Шаг 2: базовые модели без тюнинга"
+    required: true
+    kind: rule
+    any_regex: ['SVC|RandomForest|LogisticRegression']
+  - id: grid_search
+    title: "Шаг 3: Grid Search для SVM"
+    required: true
+    kind: rule
+    any_regex: ['GridSearchCV']
+  - id: random_search
+    title: "Шаг 4: Random Search для RandomForest"
+    required: true
+    kind: rule
+    any_regex: ['RandomizedSearchCV']
+  - id: permutation
+    title: "Шаг 6: Permutation Importance"
+    required: true
+    kind: rule
+    any_regex: ['permutation_importance']
+  - id: pdp
+    title: "Шаг 7: PDP и ICE-кривые"
+    required: true
+    kind: rule
+    any_regex: ['PartialDependence|partial_dependence']
+  - id: shap
+    title: "Шаг 8: SHAP"
+    required: true
+    kind: rule
+    any_regex: ['shap']
+  - id: leak_diagnostics
+    title: "Шаг 9: диагностика подозрительных признаков"
+    required: true
+    kind: rule
+    any_regex: ['утечк|leak|подозрительн|suspicious']
+  - id: summary
+    title: "Шаг 10: сводная таблица и итоги"
+    required: true
+    kind: rule
+    any_regex: ['DataFrame']
+  - id: optuna
+    title: "Шаг 11 (бонус): Bayesian Optimization через Optuna"
+    required: false
+    kind: rule
+    any_regex: ['optuna|create_study']
+  - id: cv_correct
+    title: Подбор гиперпараметров идёт по кросс-валидации, а не по тесту
+    required: true
+    kind: llm
+  - id: reads_importances
+    title: Есть содержательное чтение PI/PDP/SHAP, а не просто картинки
+    required: true
+    kind: llm

@@ -1,0 +1,31 @@
+[project]
+name = "mlbot"
+version = "0.1.0"
+description = "Телеграм-бот курса ML FAMCS: разбор домашек, статистика, сертификат"
+requires-python = ">=3.11"
+dependencies = [
+    "aiogram>=3.15",
+    "aiosqlite>=0.20",
+    "rapidfuzz>=3.9",
+    "mlcheck",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.24", "ruff>=0.16"]
+
+[project.scripts]
+mlbot = "mlbot.__main__:run"
+
+[tool.uv.sources]
+mlcheck = { path = "../checker", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mlbot"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

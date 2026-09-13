@@ -1,0 +1,53 @@
+id: hw03
+title: KNN — метод k ближайших соседей
+kind: mixed
+task: tasks/hw03.md
+template: KNN_empty.ipynb
+signature:
+  strong: [KNeighborsClassifier, n_neighbors, best_k]
+  weak: ["euclidean", "manhattan", "minkowski", "cosine", "StandardScaler", "accuracy_score", "cross_val"]
+  filename: [hw03, knn, neighbors, соседей]
+checks:
+  - id: dataset_classification
+    title: Взят датасет для классификации
+    required: true
+    kind: rule
+    any_regex: ['read_csv', 'load_(iris|wine|breast_cancer|digits)', 'fetch_']
+  - id: split
+    title: Разделение на train/test
+    required: true
+    kind: rule
+    any_regex: ['train_test_split']
+  - id: scaling
+    title: Масштабирование признаков и разбор его влияния
+    required: true
+    kind: rule
+    any_regex: ['StandardScaler', 'MinMaxScaler', 'Normalizer']
+  - id: k_search
+    title: Подбор параметра k с графиком качества
+    required: true
+    kind: rule
+    all_regex: ['n_neighbors', 'for\s|GridSearchCV|range\s*\(']
+  - id: metrics_compare
+    title: Сравнение метрик расстояния
+    required: true
+    kind: rule
+    any_regex: ['metric\s*=|p\s*=\s*[12]\b|manhattan|euclidean|minkowski|cosine']
+  - id: baselines
+    title: Сравнение с базовыми моделями
+    required: true
+    kind: rule
+    any_regex: ['DummyClassifier', 'LogisticRegression', 'DecisionTree', 'GaussianNB', 'RandomForest']
+  - id: quality_metrics
+    title: Метрики качества классификации
+    required: true
+    kind: rule
+    any_regex: ['accuracy|f1_score|classification_report|roc_auc|confusion_matrix']
+  - id: scaling_conclusion
+    title: Текстовый вывод про влияние масштабирования на KNN
+    required: true
+    kind: llm
+  - id: when_knn_good
+    title: Вывод, когда KNN работает хорошо, а когда уступает
+    required: true
+    kind: llm

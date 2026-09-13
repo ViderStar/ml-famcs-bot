@@ -1,0 +1,337 @@
+{
+ "key": "ushakov-zlata",
+ "fio": "Ушаков Злата",
+ "repo": "https://github.com/ushakov-zlata/ml-course-homeworks",
+ "status": "ok",
+ "reason": "",
+ "certificate": false,
+ "passed_hw": 2,
+ "total_hw": 12,
+ "homeworks": {
+  "hw01": {
+   "title": "Настройка окружения, NumPy и Pandas",
+   "status": "failed",
+   "notebook": "hw01/hw01_solution.ipynb",
+   "required_passed": 0,
+   "required_total": 8,
+   "reviewed_by_model": true,
+   "strengths": "Выводы сформулированы своими словами, а не пересказом вывода библиотеки.",
+   "summary": "Задание выполнено, разбор корректный. Следующий шаг — сравнить с бейзлайном.",
+   "findings": [
+    {
+     "code": "common.no_own_conclusions",
+     "severity": "major",
+     "title": "Весь текст в работе — из шаблона",
+     "detail": "",
+     "comment": "Весь текст в работе — из шаблона. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ]
+     ],
+     "article": "catalog/common/no_own_conclusions.md"
+    },
+    {
+     "code": "common.no_conclusions",
+     "severity": "major",
+     "title": "Нет текстовых выводов",
+     "detail": "",
+     "comment": "Нет текстовых выводов. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ],
+      [
+       "Яндекс.Хендбук — первые шаги",
+       "https://education.yandex.ru/handbook/ml/article/pervie-shagi"
+      ]
+     ],
+     "article": "catalog/common/no_conclusions.md"
+    },
+    {
+     "code": "common.fit_on_test",
+     "severity": "critical",
+     "title": "Преобразование обучено на тестовой выборке",
+     "detail": "",
+     "comment": "Преобразование обучено на тестовой выборке. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Кросс-валидация",
+       "https://education.yandex.ru/handbook/ml/article/kross-validaciya"
+      ],
+      [
+       "sklearn: Pipeline и утечки",
+       "https://scikit-learn.org/stable/common_pitfalls.html#data-leakage"
+      ]
+     ],
+     "article": "catalog/common/fit_on_test.md"
+    },
+    {
+     "code": "hw01.versions",
+     "severity": "major",
+     "title": "Не выведены версии окружения",
+     "detail": "",
+     "comment": "Не выведены версии окружения. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Задание HW01",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "Документация Jupyter",
+       "https://docs.jupyter.org/en/latest/"
+      ]
+     ],
+     "article": "catalog/hw01/versions.md"
+    }
+   ]
+  },
+  "hw02": {
+   "title": "Разведочный анализ данных (EDA)",
+   "status": "passed",
+   "notebook": "hw02/hw02_solution.ipynb",
+   "required_passed": 16,
+   "required_total": 16,
+   "reviewed_by_model": true,
+   "strengths": "Ты проверяешь гипотезу, а не подгоняешь результат: видно сравнение с бейзлайном.",
+   "summary": "Есть смысловая ошибка в валидации — посмотри разбор ниже и переделай этот шаг.",
+   "findings": [
+    {
+     "code": "hw02.dataset_link",
+     "severity": "minor",
+     "title": "Нет ссылки на датасет",
+     "detail": "",
+     "comment": "Нет ссылки на датасет. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Задание HW02 (чек-лист EDA)",
+       "rubrics/tasks/hw02.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ]
+     ],
+     "article": "catalog/hw02/dataset_link.md"
+    }
+   ]
+  },
+  "hw03": {
+   "title": "KNN — метод k ближайших соседей",
+   "status": "passed",
+   "notebook": "hw03/hw03_solution.ipynb",
+   "required_passed": 9,
+   "required_total": 9,
+   "reviewed_by_model": true,
+   "strengths": "Выводы сформулированы своими словами, а не пересказом вывода библиотеки.",
+   "summary": "Есть смысловая ошибка в валидации — посмотри разбор ниже и переделай этот шаг.",
+   "findings": [
+    {
+     "code": "hw03.k_search",
+     "severity": "major",
+     "title": "Нет подбора числа соседей",
+     "detail": "",
+     "comment": "Нет подбора числа соседей. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Задание HW03",
+       "rubrics/tasks/hw03.md"
+      ],
+      [
+       "Метрические методы",
+       "https://education.yandex.ru/handbook/ml/article/metricheskiye-metody"
+      ],
+      [
+       "Кросс-валидация",
+       "https://education.yandex.ru/handbook/ml/article/kross-validaciya"
+      ]
+     ],
+     "article": "catalog/hw03/k_search.md"
+    },
+    {
+     "code": "common.warnings_suppressed",
+     "severity": "minor",
+     "title": "Предупреждения отключены глобально",
+     "detail": "",
+     "comment": "Предупреждения отключены глобально. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "pandas за 10 минут",
+       "https://pandas.pydata.org/docs/user_guide/10min.html"
+      ]
+     ],
+     "article": "catalog/common/warnings_suppressed.md"
+    }
+   ]
+  },
+  "hw04": {
+   "title": "Линейная регрессия",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw05": {
+   "title": "Логистическая регрессия с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw06": {
+   "title": "Наивный Байес с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw07": {
+   "title": "Деревья решений",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw08": {
+   "title": "SVM — метод опорных векторов",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw09": {
+   "title": "Случайный лес",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw10": {
+   "title": "Градиентный бустинг",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw11": {
+   "title": "Подбор гиперпараметров и интерпретируемость",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw12": {
+   "title": "Кластеризация II — DBSCAN",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw13": {
+   "title": "Снижение размерности — PCA, t-SNE, UMAP",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  }
+ },
+ "similarity": [],
+ "portrait": {
+  "portrait": "Видно, что практика даётся легче теории: формулы стоит проговорить ещё раз.",
+  "growth": [
+   {
+    "topic": "hw04",
+    "title": "Линейная регрессия: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Задание HW04",
+      "url": "rubrics/tasks/hw04.md"
+     }
+    ]
+   },
+   {
+    "topic": "hw09",
+    "title": "Случайный лес: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Ансамбли в машинном обучении",
+      "url": "https://education.yandex.ru/handbook/ml/article/ansambli-v-mashinnom-obuchenii"
+     }
+    ]
+   }
+  ],
+  "next_steps": "Возьми соревнование на Kaggle и доведи решение до сабмита."
+ }
+}

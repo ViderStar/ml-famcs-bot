@@ -1,0 +1,267 @@
+{
+ "key": "ignatov-mark",
+ "fio": "Игнатов Марк",
+ "repo": "https://github.com/ignatov-mark/ml-course-homeworks",
+ "status": "ok",
+ "reason": "",
+ "certificate": false,
+ "passed_hw": 1,
+ "total_hw": 12,
+ "homeworks": {
+  "hw01": {
+   "title": "Настройка окружения, NumPy и Pandas",
+   "status": "passed",
+   "notebook": "hw01/hw01_solution.ipynb",
+   "required_passed": 8,
+   "required_total": 8,
+   "reviewed_by_model": true,
+   "strengths": "Ты аккуратно разделяешь выборки и не подглядываешь в тест — это видно по порядку ячеек.",
+   "summary": "Задание выполнено, разбор корректный. Следующий шаг — сравнить с бейзлайном.",
+   "findings": [
+    {
+     "code": "common.show_without_call",
+     "severity": "major",
+     "title": "plt.show написан без скобок",
+     "detail": "",
+     "comment": "plt.show написан без скобок. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "matplotlib: быстрый старт",
+       "https://matplotlib.org/stable/users/explain/quick_start.html"
+      ]
+     ],
+     "article": "catalog/common/show_without_call.md"
+    },
+    {
+     "code": "hw01.numpy_matrix",
+     "severity": "major",
+     "title": "Нет случайной матрицы и статистик по осям",
+     "detail": "",
+     "comment": "Нет случайной матрицы и статистик по осям. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Задание HW01",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "NumPy: векторизация и broadcasting",
+       "https://numpy.org/doc/stable/user/basics.broadcasting.html"
+      ]
+     ],
+     "article": "catalog/hw01/numpy_matrix.md"
+    },
+    {
+     "code": "hw01.dataframe",
+     "severity": "major",
+     "title": "Нет DataFrame с базовым обзором",
+     "detail": "",
+     "comment": "Нет DataFrame с базовым обзором. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Задание HW01",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "pandas: describe",
+       "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.describe.html"
+      ]
+     ],
+     "article": "catalog/hw01/dataframe.md"
+    },
+    {
+     "code": "hw01.iris_bonus",
+     "severity": "minor",
+     "title": "Не сделана бонусная часть с Iris",
+     "detail": "",
+     "comment": "Не сделана бонусная часть с Iris. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Задание HW01",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "Линейные модели",
+       "https://education.yandex.ru/handbook/ml/article/linear-models"
+      ]
+     ],
+     "article": "catalog/hw01/iris_bonus.md"
+    }
+   ]
+  },
+  "hw02": {
+   "title": "Разведочный анализ данных (EDA)",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw03": {
+   "title": "KNN — метод k ближайших соседей",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw04": {
+   "title": "Линейная регрессия",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw05": {
+   "title": "Логистическая регрессия с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw06": {
+   "title": "Наивный Байес с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw07": {
+   "title": "Деревья решений",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw08": {
+   "title": "SVM — метод опорных векторов",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw09": {
+   "title": "Случайный лес",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw10": {
+   "title": "Градиентный бустинг",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw11": {
+   "title": "Подбор гиперпараметров и интерпретируемость",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw12": {
+   "title": "Кластеризация II — DBSCAN",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw13": {
+   "title": "Снижение размерности — PCA, t-SNE, UMAP",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  }
+ },
+ "similarity": [],
+ "portrait": {
+  "portrait": "Сильная сторона — аккуратность с данными; слабее пока с обоснованием выбора модели.",
+  "growth": [
+   {
+    "topic": "hw06",
+    "title": "Наивный Байес с нуля: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Генеративный подход к классификации",
+      "url": "https://education.yandex.ru/handbook/ml/article/generativnyj-podhod-k-klassifikacii"
+     }
+    ]
+   },
+   {
+    "topic": "hw02",
+    "title": "Разведочный анализ данных (EDA): стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Задание HW02 (чек-лист EDA)",
+      "url": "rubrics/tasks/hw02.md"
+     }
+    ]
+   }
+  ],
+  "next_steps": "Собери небольшой pet-проект на своих данных — это лучше любого учебного датасета."
+ }
+}

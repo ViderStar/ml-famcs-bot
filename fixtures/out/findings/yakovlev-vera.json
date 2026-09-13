@@ -1,0 +1,227 @@
+{
+ "key": "yakovlev-vera",
+ "fio": "Яковлев Вера",
+ "repo": "https://github.com/yakovlev-vera/ml-course-homeworks",
+ "status": "ok",
+ "reason": "",
+ "certificate": false,
+ "passed_hw": 1,
+ "total_hw": 12,
+ "homeworks": {
+  "hw01": {
+   "title": "Настройка окружения, NumPy и Pandas",
+   "status": "passed",
+   "notebook": "hw01/hw01_solution.ipynb",
+   "required_passed": 8,
+   "required_total": 8,
+   "reviewed_by_model": true,
+   "strengths": "Графики подписаны и читаются без пояснений: оси, единицы, легенда на месте.",
+   "summary": "Работа полная и аккуратная. Попробуй тот же приём на другом наборе данных.",
+   "findings": [
+    {
+     "code": "common.absolute_path",
+     "severity": "major",
+     "title": "Абсолютный путь к данным",
+     "detail": "",
+     "comment": "Абсолютный путь к данным. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "Документация Jupyter",
+       "https://docs.jupyter.org/en/latest/"
+      ]
+     ],
+     "article": "catalog/common/absolute_path.md"
+    },
+    {
+     "code": "hw01.dataframe",
+     "severity": "major",
+     "title": "Нет DataFrame с базовым обзором",
+     "detail": "",
+     "comment": "Нет DataFrame с базовым обзором. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Задание HW01",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "pandas: describe",
+       "https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.describe.html"
+      ]
+     ],
+     "article": "catalog/hw01/dataframe.md"
+    }
+   ]
+  },
+  "hw02": {
+   "title": "Разведочный анализ данных (EDA)",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw03": {
+   "title": "KNN — метод k ближайших соседей",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw04": {
+   "title": "Линейная регрессия",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw05": {
+   "title": "Логистическая регрессия с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw06": {
+   "title": "Наивный Байес с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw07": {
+   "title": "Деревья решений",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw08": {
+   "title": "SVM — метод опорных векторов",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw09": {
+   "title": "Случайный лес",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw10": {
+   "title": "Градиентный бустинг",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw11": {
+   "title": "Подбор гиперпараметров и интерпретируемость",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw12": {
+   "title": "Кластеризация II — DBSCAN",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw13": {
+   "title": "Снижение размерности — PCA, t-SNE, UMAP",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  }
+ },
+ "similarity": [],
+ "portrait": {
+  "portrait": "Сильная сторона — аккуратность с данными; слабее пока с обоснованием выбора модели.",
+  "growth": [
+   {
+    "topic": "hw04",
+    "title": "Линейная регрессия: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Задание HW04",
+      "url": "rubrics/tasks/hw04.md"
+     }
+    ]
+   },
+   {
+    "topic": "hw02",
+    "title": "Разведочный анализ данных (EDA): стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Задание HW02 (чек-лист EDA)",
+      "url": "rubrics/tasks/hw02.md"
+     }
+    ]
+   }
+  ],
+  "next_steps": "Перечитай главу Хендбука про валидацию и переделай последнюю домашку."
+ }
+}

@@ -1,0 +1,207 @@
+{
+ "key": "scheglov-galina",
+ "fio": "Щеглов Галина",
+ "repo": "https://github.com/scheglov-galina/ml-course-homeworks",
+ "status": "ok",
+ "reason": "",
+ "certificate": false,
+ "passed_hw": 2,
+ "total_hw": 12,
+ "homeworks": {
+  "hw01": {
+   "title": "Настройка окружения, NumPy и Pandas",
+   "status": "passed",
+   "notebook": "hw01/hw01_solution.ipynb",
+   "required_passed": 8,
+   "required_total": 8,
+   "reviewed_by_model": true,
+   "strengths": "Ты аккуратно разделяешь выборки и не подглядываешь в тест — это видно по порядку ячеек.",
+   "summary": "Задание выполнено, разбор корректный. Следующий шаг — сравнить с бейзлайном.",
+   "findings": []
+  },
+  "hw02": {
+   "title": "Разведочный анализ данных (EDA)",
+   "status": "failed",
+   "notebook": "hw02/hw02_solution.ipynb",
+   "required_passed": 12,
+   "required_total": 16,
+   "reviewed_by_model": true,
+   "strengths": "Ты проверяешь гипотезу, а не подгоняешь результат: видно сравнение с бейзлайном.",
+   "summary": "Есть смысловая ошибка в валидации — посмотри разбор ниже и переделай этот шаг.",
+   "findings": [
+    {
+     "code": "common.notebook_unreadable",
+     "severity": "critical",
+     "title": "Ноутбук не открывается",
+     "detail": "",
+     "comment": "Ноутбук не открывается. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Работа с git — задание HW01",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "Документация Jupyter",
+       "https://docs.jupyter.org/en/latest/"
+      ]
+     ],
+     "article": "catalog/common/notebook_unreadable.md"
+    }
+   ]
+  },
+  "hw03": {
+   "title": "KNN — метод k ближайших соседей",
+   "status": "passed",
+   "notebook": "hw03/hw03_solution.ipynb",
+   "required_passed": 9,
+   "required_total": 9,
+   "reviewed_by_model": true,
+   "strengths": "Ты аккуратно разделяешь выборки и не подглядываешь в тест — это видно по порядку ячеек.",
+   "summary": "Задание выполнено, разбор корректный. Следующий шаг — сравнить с бейзлайном.",
+   "findings": []
+  },
+  "hw04": {
+   "title": "Линейная регрессия",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw05": {
+   "title": "Логистическая регрессия с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw06": {
+   "title": "Наивный Байес с нуля",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw07": {
+   "title": "Деревья решений",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw08": {
+   "title": "SVM — метод опорных векторов",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw09": {
+   "title": "Случайный лес",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw10": {
+   "title": "Градиентный бустинг",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw11": {
+   "title": "Подбор гиперпараметров и интерпретируемость",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw12": {
+   "title": "Кластеризация II — DBSCAN",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  },
+  "hw13": {
+   "title": "Снижение размерности — PCA, t-SNE, UMAP",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  }
+ },
+ "similarity": [],
+ "portrait": {
+  "portrait": "Сильная сторона — аккуратность с данными; слабее пока с обоснованием выбора модели.",
+  "growth": [
+   {
+    "topic": "hw05",
+    "title": "Логистическая регрессия с нуля: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Линейные модели",
+      "url": "https://education.yandex.ru/handbook/ml/article/linear-models"
+     }
+    ]
+   },
+   {
+    "topic": "hw04",
+    "title": "Линейная регрессия: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Задание HW04",
+      "url": "rubrics/tasks/hw04.md"
+     }
+    ]
+   }
+  ],
+  "next_steps": "Перечитай главу Хендбука про валидацию и переделай последнюю домашку."
+ }
+}

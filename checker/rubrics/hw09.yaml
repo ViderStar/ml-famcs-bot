@@ -1,0 +1,58 @@
+id: hw09
+title: Случайный лес
+kind: free
+task: tasks/hw09.md
+template: null
+signature:
+  strong: [RandomForestRegressor, oob_score]
+  weak: ["RandomForestClassifier", "feature_importances_", "n_estimators", "DecisionTreeRegressor", "cross_val", "ToyotaCorolla"]
+  filename: [hw09, forest, лес, random_forest]
+checks:
+  - id: preprocessing
+    title: Подготовка данных с объяснением отличий от линейной модели
+    required: true
+    kind: rule
+    any_regex: ['train_test_split|KFold|cross_val']
+  - id: forest
+    title: Обучён случайный лес
+    required: true
+    kind: rule
+    any_regex: ['RandomForest']
+  - id: single_tree
+    title: Обучено одиночное дерево той же глубины для сравнения
+    required: true
+    kind: rule
+    any_regex: ['DecisionTree']
+  - id: depth_matched
+    title: Глубина дерева и леса заданы явно
+    required: true
+    kind: rule
+    any_regex: ['max_depth']
+  - id: speed
+    title: Сравнение скорости обучения
+    required: true
+    kind: rule
+    any_regex: ['time\.|timeit|perf_counter|%%time|%time']
+  - id: metrics
+    title: Метрики и сравнение с линейной регрессией
+    required: true
+    kind: rule
+    all_regex: ['r2_score|R\^?2', 'mean_squared_error|mean_absolute_error|RMSE|MAE']
+  - id: cv
+    title: Кросс-валидация или явное объяснение, почему без неё
+    required: false
+    kind: rule
+    any_regex: ['cross_val|KFold|cv\s*=']
+  - id: importances
+    title: Важность признаков
+    required: false
+    kind: rule
+    any_regex: ['feature_importances_']
+  - id: split_questions
+    title: Даны ответы про разбиение выборки и число фолдов
+    required: true
+    kind: llm
+  - id: comparison_conclusion
+    title: Сделан вывод, какая модель справилась лучше и насколько
+    required: true
+    kind: llm

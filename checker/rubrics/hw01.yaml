@@ -1,0 +1,55 @@
+id: hw01
+title: Настройка окружения, NumPy и Pandas
+kind: template
+task: tasks/hw01.md
+template: hw01_setup_tools.ipynb   # распакован из hw01_setup_tools_template.zip
+signature:
+  strong: [col_mean, col_std, col_names, X_iris]
+  weak: ["np.random", "load_iris", "__version__", "describe", "corr"]
+  filename: [hw01, setup_tools, setup]
+# ВАЖНО: раздаточный ноутбук hw01 из архива уже содержит решения — под
+# комментариями «# TODO» стоит готовый код. 103 студента из 157 сдали его
+# нетронутым, и это не нарушение: писать было нечего. Поэтому содержательные
+# пункты здесь справочные, а зачёт определяется тем, запущен ли ноутбук.
+check_scope: full   # заготовка роздана решённой: пункты справочные, шум не нужен
+checks:
+  - id: versions
+    title: Выведены версии Python / NumPy / Pandas / sklearn
+    required: false
+    kind: rule
+    any_regex: ['__version__', 'sys\.version', 'pd\.show_versions']
+  - id: numpy_matrix
+    title: Создана случайная матрица и посчитаны статистики по осям
+    required: false
+    kind: rule
+    all_regex: ['np\.random', 'axis\s*=\s*0']
+  - id: vectorization
+    title: Векторизация — умножение матрицы на вектор
+    required: false
+    kind: rule
+    any_regex: ['@', 'np\.dot', '\.dot\s*\(']
+  - id: dataframe
+    title: DataFrame с осмысленными колонками, head/shape/describe, пропуски
+    required: false
+    kind: rule
+    all_regex: ['DataFrame', '\.head\s*\(', '\.describe\s*\(']
+  - id: pandas_ops
+    title: Осмысленные операции — фильтрация, сортировка или groupby
+    required: false
+    kind: rule
+    any_regex: ['groupby', 'sort_values', '\.loc\[', '\.query\s*\(']
+  - id: plots
+    title: Гистограмма и тепловая карта корреляций
+    required: false
+    kind: rule
+    all_regex: ['hist|histplot|distplot', 'corr\s*\(']
+  - id: seed
+    title: Зафиксирован seed для воспроизводимости
+    required: false
+    kind: rule
+    any_regex: ['np\.random\.seed', 'random_state', 'default_rng\s*\(\s*\d']
+  - id: iris_bonus
+    title: Бонус — Iris, обучение модели и accuracy
+    required: false
+    kind: rule
+    all_regex: ['load_iris', 'accuracy']

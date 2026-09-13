@@ -1,0 +1,226 @@
+{
+  "key": "demo-almost",
+  "fio": "Почтивсёв Пётр (демо)",
+  "repo": "https://github.com/demo-almost/ml",
+  "status": "ok",
+  "reason": "",
+  "certificate": false,
+  "passed_hw": 5,
+  "total_hw": 12,
+  "homeworks": {
+    "hw01": {
+      "title": "Настройка окружения, NumPy и Pandas",
+      "status": "passed",
+      "notebook": "hw01/solution.ipynb",
+      "required_passed": 8,
+      "required_total": 9,
+      "reviewed_by_model": false,
+      "strengths": "Аккуратная работа с признаками.",
+      "summary": "",
+      "findings": []
+    },
+    "hw02": {
+      "title": "Разведочный анализ данных (EDA)",
+      "status": "passed",
+      "notebook": "hw02/solution.ipynb",
+      "required_passed": 8,
+      "required_total": 9,
+      "reviewed_by_model": false,
+      "strengths": "Аккуратная работа с признаками.",
+      "summary": "",
+      "findings": []
+    },
+    "hw03": {
+      "title": "KNN — метод k ближайших соседей",
+      "status": "passed",
+      "notebook": "hw03/solution.ipynb",
+      "required_passed": 8,
+      "required_total": 9,
+      "reviewed_by_model": false,
+      "strengths": "Аккуратная работа с признаками.",
+      "summary": "",
+      "findings": []
+    },
+    "hw04": {
+      "title": "Линейная регрессия",
+      "status": "passed",
+      "notebook": "hw04/solution.ipynb",
+      "required_passed": 8,
+      "required_total": 9,
+      "reviewed_by_model": false,
+      "strengths": "Аккуратная работа с признаками.",
+      "summary": "",
+      "findings": []
+    },
+    "hw05": {
+      "title": "Логистическая регрессия с нуля",
+      "status": "passed",
+      "notebook": "hw05/solution.ipynb",
+      "required_passed": 8,
+      "required_total": 9,
+      "reviewed_by_model": false,
+      "strengths": "Аккуратная работа с признаками.",
+      "summary": "",
+      "findings": []
+    },
+    "hw06": {
+      "title": "Наивный Байес с нуля",
+      "status": "failed",
+      "notebook": "hw06/solution.ipynb",
+      "required_passed": 4,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "",
+      "summary": "Ноутбук не запускался — выводов в работе нет. Прогони Restart & Run All и перезалей.",
+      "findings": [
+        {
+          "code": "common.not_executed",
+          "severity": "critical",
+          "title": "Ноутбук сохранён без запуска",
+          "detail": "ни у одной ячейки нет номера выполнения",
+          "comment": "",
+          "source": "rule",
+          "cells": [],
+          "links": [],
+          "article": null
+        },
+        {
+          "code": "common.no_conclusions",
+          "severity": "major",
+          "title": "Нет текстовых выводов",
+          "detail": "markdown в работе всего 84 символа",
+          "comment": "",
+          "source": "rule",
+          "cells": [],
+          "links": [],
+          "article": null
+        }
+      ]
+    },
+    "hw07": {
+      "title": "Деревья решений",
+      "status": "missing",
+      "notebook": null,
+      "required_passed": 0,
+      "required_total": 0,
+      "reviewed_by_model": false,
+      "strengths": "",
+      "summary": "",
+      "findings": []
+    },
+    "hw08": {
+      "title": "SVM — метод опорных векторов",
+      "status": "failed",
+      "notebook": "hw08/solution.ipynb",
+      "required_passed": 4,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "",
+      "summary": "Ноутбук не запускался — выводов в работе нет. Прогони Restart & Run All и перезалей.",
+      "findings": [
+        {
+          "code": "common.not_executed",
+          "severity": "critical",
+          "title": "Ноутбук сохранён без запуска",
+          "detail": "ни у одной ячейки нет номера выполнения",
+          "comment": "",
+          "source": "rule",
+          "cells": [],
+          "links": [],
+          "article": null
+        },
+        {
+          "code": "common.no_conclusions",
+          "severity": "major",
+          "title": "Нет текстовых выводов",
+          "detail": "markdown в работе всего 84 символа",
+          "comment": "",
+          "source": "rule",
+          "cells": [],
+          "links": [],
+          "article": null
+        }
+      ]
+    },
+    "hw09": {
+      "title": "Случайный лес",
+      "status": "failed",
+      "notebook": "hw09/solution.ipynb",
+      "required_passed": 4,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "",
+      "summary": "Ноутбук не запускался — выводов в работе нет. Прогони Restart & Run All и перезалей.",
+      "findings": [
+        {
+          "code": "common.not_executed",
+          "severity": "critical",
+          "title": "Ноутбук сохранён без запуска",
+          "detail": "ни у одной ячейки нет номера выполнения",
+          "comment": "",
+          "source": "rule",
+          "cells": [],
+          "links": [],
+          "article": null
+        },
+        {
+          "code": "common.no_conclusions",
+          "severity": "major",
+          "title": "Нет текстовых выводов",
+          "detail": "markdown в работе всего 84 символа",
+          "comment": "",
+          "source": "rule",
+          "cells": [],
+          "links": [],
+          "article": null
+        }
+      ]
+    },
+    "hw10": {
+      "title": "Градиентный бустинг",
+      "status": "missing",
+      "notebook": null,
+      "required_passed": 0,
+      "required_total": 0,
+      "reviewed_by_model": false,
+      "strengths": "",
+      "summary": "",
+      "findings": []
+    },
+    "hw11": {
+      "title": "Подбор гиперпараметров и интерпретируемость",
+      "status": "missing",
+      "notebook": null,
+      "required_passed": 0,
+      "required_total": 0,
+      "reviewed_by_model": false,
+      "strengths": "",
+      "summary": "",
+      "findings": []
+    },
+    "hw12": {
+      "title": "Кластеризация II — DBSCAN",
+      "status": "missing",
+      "notebook": null,
+      "required_passed": 0,
+      "required_total": 0,
+      "reviewed_by_model": false,
+      "strengths": "",
+      "summary": "",
+      "findings": []
+    },
+    "hw13": {
+      "title": "Снижение размерности — PCA, t-SNE, UMAP",
+      "status": "missing",
+      "notebook": null,
+      "required_passed": 0,
+      "required_total": 0,
+      "reviewed_by_model": false,
+      "strengths": "",
+      "summary": "",
+      "findings": []
+    }
+  },
+  "similarity": [],
+  "portrait": null
+}

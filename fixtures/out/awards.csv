@@ -1,0 +1,7 @@
+key,fio,certificate,photo,note
+yudin-denis,Юдин Денис,fixtures/certificates/pdf/yudin-denis.pdf,fixtures/certificates/photos/Юдин Денис.jpg,
+oreshkin-oleg,Орешкин Олег,fixtures/certificates/pdf/oreshkin-oleg.pdf,,
+dubrovin-mark,Дубровин Марк,fixtures/certificates/pdf/dubrovin-mark.pdf,fixtures/certificates/photos/Дубровин Марк.jpg,
+timoshin-polina,Тимошин Полина,fixtures/certificates/pdf/timoshin-polina.pdf,fixtures/certificates/photos/Тимошин Полина.jpg,
+cvetkov-oleg,Цветков Олег,fixtures/certificates/pdf/cvetkov-oleg.pdf,,
+angelov-galina,Ангелов Галина,fixtures/certificates/pdf/angelov-galina.pdf,fixtures/certificates/photos/Ангелов Галина.jpg,

@@ -1,0 +1,55 @@
+id: hw13
+title: Снижение размерности — PCA, t-SNE, UMAP
+kind: template
+task: null
+template: pca_practice_student.ipynb
+leakage_exempt: [pca, tsne, umap]
+signature:
+  strong: [explained_variance_ratio_, X_tsne, cumvar]
+  weak: ["PCA", "TSNE", "umap", "load_digits", "components_", "inverse_transform", "loadings"]
+  filename: [hw13, pca, tsne, umap, размерност, dim_red]
+checks:
+  - id: scaling
+    title: Стандартизация перед PCA
+    required: true
+    kind: rule
+    any_regex: ['StandardScaler']
+  - id: pca
+    title: PCA применён
+    required: true
+    kind: rule
+    any_regex: ['PCA\s*\(']
+  - id: explained_variance
+    title: Объяснённая дисперсия и выбор числа компонент
+    required: true
+    kind: rule
+    any_regex: ['explained_variance_ratio_']
+  - id: cumulative
+    title: Накопленная доля дисперсии
+    required: true
+    kind: rule
+    any_regex: ['cumsum|cumvar']
+  - id: loadings
+    title: Интерпретация компонент через loadings
+    required: true
+    kind: rule
+    any_regex: ['components_|loading']
+  - id: tsne
+    title: t-SNE для визуализации
+    required: true
+    kind: rule
+    any_regex: ['TSNE']
+  - id: umap
+    title: UMAP
+    required: false
+    kind: rule
+    any_regex: ['umap|UMAP']
+  - id: downstream
+    title: PCA как препроцессинг перед моделью
+    required: true
+    kind: rule
+    any_regex: ['fit\s*\(|score\s*\(|LogisticRegression|clf_']
+  - id: conclusions
+    title: Есть выводы про структуру данных в проекциях
+    required: true
+    kind: llm

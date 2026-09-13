@@ -1,0 +1,49 @@
+id: hw12
+title: Кластеризация II — DBSCAN
+kind: template
+task: null
+template: clustering2_practice_student.ipynb
+signature:
+  strong: [DBSCAN, eps_values, k_distances]
+  weak: ["KMeans", "silhouette_score", "make_moons", "make_circles", "fit_predict", "min_samples"]
+  filename: [hw12, dbscan, cluster, кластер]
+checks:
+  - id: dbscan
+    title: DBSCAN применён
+    required: true
+    kind: rule
+    any_regex: ['DBSCAN']
+  - id: kmeans_compare
+    title: Сравнение с K-Means
+    required: true
+    kind: rule
+    any_regex: ['KMeans']
+  - id: scaling
+    title: Масштабирование перед кластеризацией
+    required: true
+    kind: rule
+    any_regex: ['StandardScaler|MinMaxScaler']
+  - id: k_distance
+    title: Подбор eps через k-distance plot
+    required: true
+    kind: rule
+    any_regex: ['k_dist|NearestNeighbors|kneighbors']
+  - id: params
+    title: Разобрано влияние eps и min_samples
+    required: true
+    kind: rule
+    all_regex: ['eps', 'min_samples']
+  - id: silhouette
+    title: Силуэт как мера качества
+    required: true
+    kind: rule
+    any_regex: ['silhouette']
+  - id: noise
+    title: Работа с шумом — интерпретация метки -1
+    required: true
+    kind: rule
+    any_regex: ['-1', 'noise|шум']
+  - id: reflection_answers
+    title: Даны ответы на вопросы для размышления
+    required: true
+    kind: llm

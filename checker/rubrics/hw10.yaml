@@ -1,0 +1,50 @@
+id: hw10
+title: Градиентный бустинг
+kind: template
+task: tasks/hw10.md
+template: teacher_notebook.ipynb
+signature:
+  strong: [MyBoost, SELECTED_N_ESTIMATORS, best_params_dict, colsample]
+  weak: ["XGBRegressor", "LGBMRegressor", "CatBoostRegressor", "MAX_TREES", "antigrad", "subsample",
+         "GradientBoosting", "xgboost", "lightgbm", "catboost", "n_estimators", "learning_rate"]
+  filename: [hw10, boost, бустинг, gradient]
+checks:
+  - id: libraries
+    title: Сравнение XGBoost, LightGBM и CatBoost
+    required: true
+    kind: rule
+    all_regex: ['[Xx][Gg][Bb]', 'lgb|LGBM|LightGBM', 'catboost|CatBoost']
+  - id: own_boosting
+    title: Собственная реализация бустинга
+    required: true
+    kind: rule
+    any_regex: ['class\s+\w*Boost']
+  - id: subsample
+    title: Добавлен параметр subsample
+    required: true
+    kind: rule
+    any_regex: ['subsample']
+  - id: colsample
+    title: Добавлен параметр colsample_bytree
+    required: true
+    kind: rule
+    any_regex: ['colsample']
+  - id: importances
+    title: Добавлено свойство feature_importances_
+    required: true
+    kind: rule
+    any_regex: ['feature_importances_']
+  - id: categorical
+    title: Нативная поддержка категориальных признаков
+    required: false
+    kind: rule
+    any_regex: ['cat_features|categorical_feature|category']
+  - id: comparison
+    title: Своя реализация сравнена с библиотечной
+    required: true
+    kind: rule
+    any_regex: ['r2_score|R\^?2']
+  - id: quality_gap
+    title: Отклонение своей реализации от библиотечной не хуже 0.05 по R²
+    required: true
+    kind: llm

@@ -1,0 +1,59 @@
+id: hw06
+title: Наивный Байес с нуля
+kind: template
+task: null
+template: naive_bayes_practice_student.ipynb
+signature:
+  strong: [MyGaussianNB, compute_priors, gaussian_log_likelihood, fit_gaussian_params]
+  weak: ["GaussianNB", "log_prior", "log_likelihood", "naive_bayes",
+         "MultinomialNB", "prior", "posterior", "apriori", "байес"]
+  filename: [hw06, bayes, байес]
+checks:
+  - id: split
+    title: "Шаг 1: разделение данных"
+    required: true
+    kind: rule
+    any_regex: ['train_test_split']
+  - id: priors
+    title: "Шаг 2: априорные вероятности классов"
+    required: true
+    kind: rule
+    any_regex: ['def\s+compute_priors']
+  - id: params
+    title: "Шаг 3: параметры распределений по классам"
+    required: true
+    kind: rule
+    any_regex: ['def\s+fit_gaussian_params']
+  - id: loglik
+    title: "Шаг 4: log-likelihood"
+    required: true
+    kind: rule
+    any_regex: ['def\s+gaussian_log_likelihood']
+  - id: model_class
+    title: "Шаг 5: классификатор собран в класс"
+    required: true
+    kind: rule
+    any_regex: ['class\s+MyGaussianNB']
+  - id: metrics
+    title: "Шаг 7–8: метрики и confusion matrix"
+    required: true
+    kind: rule
+    all_regex: ['accuracy|precision|recall|f1', 'confusion_matrix|ConfusionMatrix']
+  - id: compare_sklearn
+    title: "Шаг 9–10: сравнение с GaussianNB из sklearn"
+    required: true
+    kind: rule
+    any_regex: ['GaussianNB\s*\(']
+  - id: independence
+    title: "Шаг 11: проверка допущения о независимости признаков"
+    required: true
+    kind: rule
+    any_regex: ['corr\s*\(|независим']
+  - id: log_space
+    title: Вычисления ведутся в логарифмах, без переполнения вероятностей
+    required: false
+    kind: llm
+  - id: final_questions
+    title: Даны текстовые ответы на финальные вопросы
+    required: true
+    kind: llm

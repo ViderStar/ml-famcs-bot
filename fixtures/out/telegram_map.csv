@@ -1,0 +1,61 @@
+key,fio,reg_fio,username,match,exists,note
+lapshin-petr,Лапшин Пётр,Лапшин Пётр Сергеевич,lapshin_petr,exact,yes,
+hlebnikov-darya,Хлебников Дарья,Хлебников Дарья Сергеевич,hlebnikov_darya,exact,yes,
+yudin-denis,Юдин Денис,Юдин Денис Сергеевич,yudin_denis,exact,yes,
+zhdanov-kseniya,Жданов Ксения,,,none,,регистрационную форму не заполнял
+lapshin-kirill,Лапшин Кирилл,Лапшин Кирилл Сергеевич,lapshin_kirill,exact,yes,
+ignatov-polina,Игнатов Полина,Игнатов Полина Сергеевич,ignatov_polina,exact,yes,
+dubrovin-galina,Дубровин Галина,Дубровин Галина Сергеевич,dubrovin_galina,exact,no,
+timoshin-lev,Тимошин Лев,,,none,,регистрационную форму не заполнял
+korablev-artem,Кораблёв Артём,Кораблёв Артём Сергеевич,korablev_artem,exact,yes,
+scheglov-ivan,Щеглов Иван,Щеглов Иван Сергеевич,scheglov_ivan,exact,yes,
+eroshkin-alina,Ерошкин Алина,Ерошкин Алина Сергеевич,eroshkin_alina,exact,yes,
+nesterov-oleg,Нестеров Олег,,,none,,регистрационную форму не заполнял
+oreshkin-roman,Орешкин Роман,Орешкин Роман Сергеевич,oreshkin_roman,exact,yes,
+eroshkin-lev,Ерошкин Лев,Ерошкин Лев Сергеевич,eroshkin_lev,exact,no,
+solovev-alina,Соловьёв Алина,Соловьёв Алина Сергеевич,solovev_alina,exact,yes,
+oreshkin-oleg,Орешкин Олег,,,none,,регистрационную форму не заполнял
+zinovev-polina,Зиновьев Полина,Зиновьев Полина Сергеевич,zinovev_polina,exact,yes,
+ushakov-zlata,Ушаков Злата,Ушаков Злата Сергеевич,ushakov_zlata,exact,yes,
+ignatov-mark,Игнатов Марк,Игнатов Марк Сергеевич,ignatov_mark,exact,yes,
+angelov-rita,Ангелов Рита,,,none,,регистрационную форму не заполнял
+nesterov-darya,Нестеров Дарья,Нестеров Дарья Сергеевич,nesterov_darya,exact,no,
+solovev-denis,Соловьёв Денис,Соловьёв Денис Сергеевич,solovev_denis,exact,yes,
+dubrovin-mark,Дубровин Марк,Дубровин Марк Сергеевич,dubrovin_mark,exact,yes,
+eroshkin-lada,Ерошкин Лада,,,none,,регистрационную форму не заполнял
+shilov-boris,Шилов Борис,Шилов Борис Сергеевич,shilov_boris,exact,yes,
+solovev-mark,Соловьёв Марк,Соловьёв Марк Сергеевич,solovev_mark,exact,yes,
+timoshin-polina,Тимошин Полина,Тимошин Полина Сергеевич,timoshin_polina,exact,yes,
+solovev-galina,Соловьёв Галина,,,none,,регистрационную форму не заполнял
+vyugin-roman,Вьюгин Роман,Вьюгин Роман Сергеевич,vyugin_roman,exact,yes,
+belkin-zhanna,Белкин Жанна,Белкин Жанна Сергеевич,belkin_zhanna,exact,yes,
+biryukov-rita,Бирюков Рита,Бирюков Рита Сергеевич,biryukov_rita,exact,yes,
+korablev-kirill,Кораблёв Кирилл,,,none,,регистрационную форму не заполнял
+muhin-ivan,Мухин Иван,Мухин Иван Сергеевич,muhin_ivan,exact,yes,
+cvetkov-ivan,Цветков Иван,Цветков Иван Сергеевич,cvetkov_ivan,exact,yes,
+shilov-nina,Шилов Нина,Шилов Нина Сергеевич,shilov_nina,exact,no,
+cheremuhin-kseniya,Черёмухин Ксения,,,none,,регистрационную форму не заполнял
+cheremuhin-vadim,Черёмухин Вадим,Черёмухин Вадим Сергеевич,cheremuhin_vadim,exact,yes,
+roschin-nina,Рощин Нина,Рощин Нина Сергеевич,roschin_nina,exact,yes,
+ignatov-artem,Игнатов Артём,Игнатов Артём Сергеевич,ignatov_artem,exact,yes,
+hlebnikov-galina,Хлебников Галина,,,none,,регистрационную форму не заполнял
+cheremuhin-nina,Черёмухин Нина,Черёмухин Нина Сергеевич,cheremuhin_nina,exact,yes,
+ushakov-olga,Ушаков Ольга,Ушаков Ольга Сергеевич,ushakov_olga,exact,no,
+cvetkov-semen,Цветков Семён,Цветков Семён Сергеевич,cvetkov_semen,exact,yes,
+scheglov-semen,Щеглов Семён,,,none,,регистрационную форму не заполнял
+eroshkin-egor,Ерошкин Егор,Ерошкин Егор Сергеевич,eroshkin_egor,exact,yes,
+ignatov-ivan,Игнатов Иван,Игнатов Иван Сергеевич,ignatov_ivan,exact,yes,
+solovev-rita,Соловьёв Рита,Соловьёв Рита Сергеевич,solovev_rita,exact,yes,
+roschin-kirill,Рощин Кирилл,,,none,,регистрационную форму не заполнял
+cvetkov-oleg,Цветков Олег,Цветков Олег Сергеевич,cvetkov_oleg,exact,no,
+verbickiy-rita,Вербицкий Рита,Вербицкий Рита Сергеевич,verbickiy_rita,exact,yes,
+roschin-semen,Рощин Семён,Рощин Семён Сергеевич,roschin_semen,exact,yes,
+yakovlev-vera,Яковлев Вера,,,none,,регистрационную форму не заполнял
+zhdanov-lev,Жданов Лев,Жданов Лев Сергеевич,zhdanov_lev,exact,yes,
+scheglov-galina,Щеглов Галина,Щеглов Галина Сергеевич,scheglov_galina,exact,yes,
+belkin-oleg,Белкин Олег,Белкин Олег Сергеевич,belkin_oleg,exact,yes,
+pchelkin-darya,Пчёлкин Дарья,,,none,,регистрационную форму не заполнял
+dubrovin-olga,Дубровин Ольга,Дубровин Ольга Сергеевич,dubrovin_olga,exact,yes,
+zinovev-vadim,Зиновьев Вадим,Зиновьев Вадим Сергеевич,zinovev_vadim,exact,yes,
+angelov-galina,Ангелов Галина,Ангелов Галина Сергеевич,angelov_galina,exact,yes,
+biryukov-darya,Бирюков Дарья,,,none,,регистрационную форму не заполнял

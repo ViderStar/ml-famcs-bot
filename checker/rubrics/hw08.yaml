@@ -1,0 +1,54 @@
+id: hw08
+title: SVM — метод опорных векторов
+kind: template
+task: null
+template: svm_practice_student.ipynb
+signature:
+  strong: [plot_decision_boundary, pipe_rbf, pipe_linear, svm_no_scale]
+  weak: ["SVC", "LinearSVC", "kernel", "gamma", "GridSearchCV", "make_pipeline",
+         "svm", "rbf", "margin", "support_vectors_", "poly"]
+  filename: [hw08, svm, опорн]
+checks:
+  - id: split
+    title: "Шаг 1: разделение данных"
+    required: true
+    kind: rule
+    any_regex: ['train_test_split']
+  - id: no_scaling_demo
+    title: "Шаг 2: SVM без масштабирования — показан эффект"
+    required: true
+    kind: rule
+    any_regex: ['SVC\s*\(|LinearSVC\s*\(']
+  - id: pipeline
+    title: "Шаг 3: масштабирование через Pipeline"
+    required: true
+    kind: rule
+    all_regex: ['Pipeline|make_pipeline', 'StandardScaler']
+  - id: grid
+    title: "Шаг 4: подбор C и gamma через GridSearchCV"
+    required: true
+    kind: rule
+    all_regex: ['GridSearchCV', 'gamma|\bC\b']
+  - id: confusion
+    title: "Шаг 5: confusion matrix"
+    required: true
+    kind: rule
+    any_regex: ['confusion_matrix|ConfusionMatrix']
+  - id: boundary
+    title: "Шаг 6: граница решений на двух признаках"
+    required: true
+    kind: rule
+    any_regex: ['contourf|contour|plot_decision_boundary']
+  - id: linear_vs_rbf
+    title: "Шаг 8: сравнение линейного ядра и RBF"
+    required: true
+    kind: rule
+    all_regex: ['linear', 'rbf']
+  - id: error_analysis
+    title: "Шаг 7: анализ ошибок с текстовым разбором"
+    required: true
+    kind: llm
+  - id: final_questions
+    title: Даны текстовые ответы на финальные вопросы
+    required: true
+    kind: llm

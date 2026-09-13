@@ -1,0 +1,244 @@
+{
+  "key": "demo-star",
+  "fio": "Демидова Вера (демо)",
+  "repo": "https://github.com/demo-star/ml-course-homeworks",
+  "status": "ok",
+  "reason": "",
+  "certificate": true,
+  "passed_hw": 12,
+  "total_hw": 12,
+  "homeworks": {
+    "hw01": {
+      "title": "Настройка окружения, NumPy и Pandas",
+      "status": "passed",
+      "notebook": "hw01/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": [
+        {
+          "code": "common.fit_before_split",
+          "severity": "major",
+          "title": "Преобразование обучено до разделения выборки",
+          "detail": "X[num] = imputer.fit_transform(X[num])",
+          "comment": "",
+          "source": "rule",
+          "cells": [],
+          "links": [
+            [
+              "Кросс-валидация",
+              "https://education.yandex.ru/handbook/ml/article/kross-validaciya"
+            ]
+          ],
+          "article": null
+        }
+      ]
+    },
+    "hw02": {
+      "title": "Разведочный анализ данных (EDA)",
+      "status": "passed",
+      "notebook": "hw02/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": []
+    },
+    "hw03": {
+      "title": "KNN — метод k ближайших соседей",
+      "status": "passed",
+      "notebook": "hw03/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": []
+    },
+    "hw04": {
+      "title": "Линейная регрессия",
+      "status": "passed",
+      "notebook": "hw04/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": []
+    },
+    "hw05": {
+      "title": "Логистическая регрессия с нуля",
+      "status": "passed",
+      "notebook": "hw05/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": [
+        {
+          "code": "common.fit_before_split",
+          "severity": "major",
+          "title": "Преобразование обучено до разделения выборки",
+          "detail": "X[num] = imputer.fit_transform(X[num])",
+          "comment": "",
+          "source": "rule",
+          "cells": [],
+          "links": [
+            [
+              "Кросс-валидация",
+              "https://education.yandex.ru/handbook/ml/article/kross-validaciya"
+            ]
+          ],
+          "article": null
+        }
+      ]
+    },
+    "hw06": {
+      "title": "Наивный Байес с нуля",
+      "status": "passed",
+      "notebook": "hw06/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": []
+    },
+    "hw07": {
+      "title": "Деревья решений",
+      "status": "passed",
+      "notebook": "hw07/solution.ipynb",
+      "required_passed": 0,
+      "required_total": 0,
+      "reviewed_by_model": false,
+      "strengths": "Разобрался с обрезкой дерева.",
+      "summary": "",
+      "findings": []
+    },
+    "hw08": {
+      "title": "SVM — метод опорных векторов",
+      "status": "passed",
+      "notebook": "hw08/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": []
+    },
+    "hw09": {
+      "title": "Случайный лес",
+      "status": "passed",
+      "notebook": "hw09/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": [
+        {
+          "code": "common.fit_before_split",
+          "severity": "major",
+          "title": "Преобразование обучено до разделения выборки",
+          "detail": "X[num] = imputer.fit_transform(X[num])",
+          "comment": "",
+          "source": "rule",
+          "cells": [],
+          "links": [
+            [
+              "Кросс-валидация",
+              "https://education.yandex.ru/handbook/ml/article/kross-validaciya"
+            ]
+          ],
+          "article": null
+        }
+      ]
+    },
+    "hw10": {
+      "title": "Градиентный бустинг",
+      "status": "passed",
+      "notebook": "hw10/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": []
+    },
+    "hw11": {
+      "title": "Подбор гиперпараметров и интерпретируемость",
+      "status": "passed",
+      "notebook": "hw11/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": []
+    },
+    "hw12": {
+      "title": "Кластеризация II — DBSCAN",
+      "status": "passed",
+      "notebook": "hw12/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": []
+    },
+    "hw13": {
+      "title": "Снижение размерности — PCA, t-SNE, UMAP",
+      "status": "passed",
+      "notebook": "hw13/solution.ipynb",
+      "required_passed": 9,
+      "required_total": 9,
+      "reviewed_by_model": true,
+      "strengths": "Умеешь проверять гипотезу до того, как поверить в метрику.",
+      "summary": "Работа сделана целиком, выводы честные. Следующий шаг — собрать препроцессинг в Pipeline, чтобы утечка стала невозможной.",
+      "findings": [
+        {
+          "code": "common.fit_before_split",
+          "severity": "major",
+          "title": "Преобразование обучено до разделения выборки",
+          "detail": "X[num] = imputer.fit_transform(X[num])",
+          "comment": "",
+          "source": "rule",
+          "cells": [],
+          "links": [
+            [
+              "Кросс-валидация",
+              "https://education.yandex.ru/handbook/ml/article/kross-validaciya"
+            ]
+          ],
+          "article": null
+        }
+      ]
+    }
+  },
+  "similarity": [],
+  "portrait": {
+    "portrait": "За курс видно главное умение: ты не веришь метрике, пока не проверишь её на бейзлайне. Свои реализации KNN и логрегрессии сходятся со sklearn, а выводы опираются на числа из работы.",
+    "growth": [
+      {
+        "topic": "hw04",
+        "title": "Утечка при препроцессинге",
+        "why": "Импьютер обучался до разбиения в трёх работах.",
+        "codes": [
+          "common.fit_before_split"
+        ],
+        "links": [
+          {
+            "title": "Кросс-валидация",
+            "url": "https://education.yandex.ru/handbook/ml/article/kross-validaciya"
+          }
+        ]
+      }
+    ],
+    "next_steps": "Собери препроцессинг в Pipeline и прогони кросс-валидацию."
+  }
+}

@@ -1,0 +1,468 @@
+{
+ "key": "angelov-galina",
+ "fio": "Ангелов Галина",
+ "repo": "https://github.com/angelov-galina/ml-course-homeworks",
+ "status": "ok",
+ "reason": "",
+ "certificate": true,
+ "passed_hw": 9,
+ "total_hw": 12,
+ "homeworks": {
+  "hw01": {
+   "title": "Настройка окружения, NumPy и Pandas",
+   "status": "passed",
+   "notebook": "hw01/hw01_solution.ipynb",
+   "required_passed": 8,
+   "required_total": 8,
+   "reviewed_by_model": true,
+   "strengths": "Графики подписаны и читаются без пояснений: оси, единицы, легенда на месте.",
+   "summary": "Основное сделано, но выводов не хватает: допиши, что именно показал результат.",
+   "findings": []
+  },
+  "hw02": {
+   "title": "Разведочный анализ данных (EDA)",
+   "status": "passed",
+   "notebook": "hw02/hw02_solution.ipynb",
+   "required_passed": 16,
+   "required_total": 16,
+   "reviewed_by_model": true,
+   "strengths": "Код разбит на функции, повторы вынесены — ноутбук читается как текст.",
+   "summary": "Основное сделано, но выводов не хватает: допиши, что именно показал результат.",
+   "findings": [
+    {
+     "code": "hw02.skew_kurt",
+     "severity": "major",
+     "title": "Нет дисперсии, асимметрии и эксцесса",
+     "detail": "",
+     "comment": "Нет дисперсии, асимметрии и эксцесса. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Задание HW02 (чек-лист EDA)",
+       "rubrics/tasks/hw02.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ]
+     ],
+     "article": "catalog/hw02/skew_kurt.md"
+    }
+   ]
+  },
+  "hw03": {
+   "title": "KNN — метод k ближайших соседей",
+   "status": "failed",
+   "notebook": "hw03/hw03_solution.ipynb",
+   "required_passed": 4,
+   "required_total": 9,
+   "reviewed_by_model": true,
+   "strengths": "Ты аккуратно разделяешь выборки и не подглядываешь в тест — это видно по порядку ячеек.",
+   "summary": "Работа полная и аккуратная. Попробуй тот же приём на другом наборе данных.",
+   "findings": [
+    {
+     "code": "common.fit_on_test",
+     "severity": "critical",
+     "title": "Преобразование обучено на тестовой выборке",
+     "detail": "",
+     "comment": "Преобразование обучено на тестовой выборке. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Кросс-валидация",
+       "https://education.yandex.ru/handbook/ml/article/kross-validaciya"
+      ],
+      [
+       "sklearn: Pipeline и утечки",
+       "https://scikit-learn.org/stable/common_pitfalls.html#data-leakage"
+      ]
+     ],
+     "article": "catalog/common/fit_on_test.md"
+    }
+   ]
+  },
+  "hw04": {
+   "title": "Линейная регрессия",
+   "status": "failed",
+   "notebook": "hw04/hw04_solution.ipynb",
+   "required_passed": 8,
+   "required_total": 10,
+   "reviewed_by_model": true,
+   "strengths": "Ты проверяешь гипотезу, а не подгоняешь результат: видно сравнение с бейзлайном.",
+   "summary": "Основное сделано, но выводов не хватает: допиши, что именно показал результат.",
+   "findings": [
+    {
+     "code": "common.undefined_name",
+     "severity": "critical",
+     "title": "Ноутбук не запустится с нуля: имя нигде не определено",
+     "detail": "",
+     "comment": "Ноутбук не запустится с нуля: имя нигде не определено. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "Документация Jupyter",
+       "https://docs.jupyter.org/en/latest/"
+      ]
+     ],
+     "article": "catalog/common/undefined_name.md"
+    },
+    {
+     "code": "common.conclusions_in_code_comments",
+     "severity": "major",
+     "title": "Выводы написаны комментариями в ячейке кода",
+     "detail": "",
+     "comment": "Выводы написаны комментариями в ячейке кода. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ]
+     ],
+     "article": "catalog/common/conclusions_in_code_comments.md"
+    },
+    {
+     "code": "common.no_conclusions",
+     "severity": "major",
+     "title": "Нет текстовых выводов",
+     "detail": "",
+     "comment": "Нет текстовых выводов. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ],
+      [
+       "Яндекс.Хендбук — первые шаги",
+       "https://education.yandex.ru/handbook/ml/article/pervie-shagi"
+      ]
+     ],
+     "article": "catalog/common/no_conclusions.md"
+    }
+   ]
+  },
+  "hw05": {
+   "title": "Логистическая регрессия с нуля",
+   "status": "passed",
+   "notebook": "hw05/hw05_solution.ipynb",
+   "required_passed": 11,
+   "required_total": 11,
+   "reviewed_by_model": true,
+   "strengths": "Ты аккуратно разделяешь выборки и не подглядываешь в тест — это видно по порядку ячеек.",
+   "summary": "Есть смысловая ошибка в валидации — посмотри разбор ниже и переделай этот шаг.",
+   "findings": [
+    {
+     "code": "common.no_own_conclusions",
+     "severity": "major",
+     "title": "Весь текст в работе — из шаблона",
+     "detail": "",
+     "comment": "Весь текст в работе — из шаблона. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ]
+     ],
+     "article": "catalog/common/no_own_conclusions.md"
+    }
+   ]
+  },
+  "hw06": {
+   "title": "Наивный Байес с нуля",
+   "status": "passed",
+   "notebook": "hw06/hw06_solution.ipynb",
+   "required_passed": 10,
+   "required_total": 10,
+   "reviewed_by_model": true,
+   "strengths": "Код разбит на функции, повторы вынесены — ноутбук читается как текст.",
+   "summary": "Задание выполнено, разбор корректный. Следующий шаг — сравнить с бейзлайном.",
+   "findings": [
+    {
+     "code": "common.text_contradicts_output",
+     "severity": "major",
+     "title": "Выводы расходятся с результатами в ноутбуке",
+     "detail": "",
+     "comment": "Выводы расходятся с результатами в ноутбуке. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ]
+     ],
+     "article": "catalog/common/text_contradicts_output.md"
+    },
+    {
+     "code": "common.no_own_conclusions",
+     "severity": "major",
+     "title": "Весь текст в работе — из шаблона",
+     "detail": "",
+     "comment": "Весь текст в работе — из шаблона. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ]
+     ],
+     "article": "catalog/common/no_own_conclusions.md"
+    },
+    {
+     "code": "common.conclusions_in_code_comments",
+     "severity": "major",
+     "title": "Выводы написаны комментариями в ячейке кода",
+     "detail": "",
+     "comment": "Выводы написаны комментариями в ячейке кода. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ]
+     ],
+     "article": "catalog/common/conclusions_in_code_comments.md"
+    },
+    {
+     "code": "hw06.params",
+     "severity": "major",
+     "title": "Не оценены параметры распределений по классам",
+     "detail": "",
+     "comment": "Не оценены параметры распределений по классам. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Генеративный подход к классификации",
+       "https://education.yandex.ru/handbook/ml/article/generativnyj-podhod-k-klassifikacii"
+      ],
+      [
+       "Как оценивать вероятности",
+       "https://education.yandex.ru/handbook/ml/article/kak-ocenivat-veroyatnosti"
+      ]
+     ],
+     "article": "catalog/hw06/params.md"
+    }
+   ]
+  },
+  "hw07": {
+   "title": "Деревья решений",
+   "status": "failed",
+   "notebook": "hw07/hw07_solution.ipynb",
+   "required_passed": 4,
+   "required_total": 8,
+   "reviewed_by_model": true,
+   "strengths": "Выводы сформулированы своими словами, а не пересказом вывода библиотеки.",
+   "summary": "Задание выполнено, разбор корректный. Следующий шаг — сравнить с бейзлайном.",
+   "findings": [
+    {
+     "code": "hw07.interpretation",
+     "severity": "major",
+     "title": "Нет интерпретации структуры дерева",
+     "detail": "",
+     "comment": "Нет интерпретации структуры дерева. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Решающие деревья",
+       "https://education.yandex.ru/handbook/ml/article/reshayushchiye-derevya"
+      ]
+     ],
+     "article": "catalog/hw07/interpretation.md"
+    },
+    {
+     "code": "hw07.visualize",
+     "severity": "minor",
+     "title": "Структура дерева не визуализирована",
+     "detail": "",
+     "comment": "Структура дерева не визуализирована. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Решающие деревья",
+       "https://education.yandex.ru/handbook/ml/article/reshayushchiye-derevya"
+      ]
+     ],
+     "article": "catalog/hw07/visualize.md"
+    },
+    {
+     "code": "common.partially_executed",
+     "severity": "major",
+     "title": "Часть ячеек не выполнена",
+     "detail": "",
+     "comment": "Часть ячеек не выполнена. Подробности — в разборе.",
+     "source": "rule",
+     "cells": [],
+     "links": [
+      [
+       "Как сдаются домашки на курсе",
+       "rubrics/tasks/hw01.md"
+      ],
+      [
+       "Документация Jupyter",
+       "https://docs.jupyter.org/en/latest/"
+      ],
+      [
+       "ODS: первичный анализ данных с Pandas",
+       "https://habr.com/ru/companies/ods/articles/322626/"
+      ]
+     ],
+     "article": "catalog/common/partially_executed.md"
+    },
+    {
+     "code": "common.error_output",
+     "severity": "critical",
+     "title": "Ноутбук падает с ошибкой",
+     "detail": "",
+     "comment": "Ноутбук падает с ошибкой. Подробности — в разборе.",
+     "source": "llm",
+     "cells": [],
+     "links": [
+      [
+       "Метрики классификации и регрессии",
+       "https://education.yandex.ru/handbook/ml/article/metriki-klassifikacii-i-regressii"
+      ]
+     ],
+     "article": "catalog/common/error_output.md"
+    }
+   ]
+  },
+  "hw08": {
+   "title": "SVM — метод опорных векторов",
+   "status": "passed",
+   "notebook": "hw08/hw08_solution.ipynb",
+   "required_passed": 9,
+   "required_total": 9,
+   "reviewed_by_model": true,
+   "strengths": "Код разбит на функции, повторы вынесены — ноутбук читается как текст.",
+   "summary": "Основное сделано, но выводов не хватает: допиши, что именно показал результат.",
+   "findings": []
+  },
+  "hw09": {
+   "title": "Случайный лес",
+   "status": "passed",
+   "notebook": "hw09/hw09_solution.ipynb",
+   "required_passed": 10,
+   "required_total": 10,
+   "reviewed_by_model": true,
+   "strengths": "Ты аккуратно разделяешь выборки и не подглядываешь в тест — это видно по порядку ячеек.",
+   "summary": "Есть смысловая ошибка в валидации — посмотри разбор ниже и переделай этот шаг.",
+   "findings": []
+  },
+  "hw10": {
+   "title": "Градиентный бустинг",
+   "status": "passed",
+   "notebook": "hw10/hw10_solution.ipynb",
+   "required_passed": 8,
+   "required_total": 8,
+   "reviewed_by_model": true,
+   "strengths": "Графики подписаны и читаются без пояснений: оси, единицы, легенда на месте.",
+   "summary": "Есть смысловая ошибка в валидации — посмотри разбор ниже и переделай этот шаг.",
+   "findings": []
+  },
+  "hw11": {
+   "title": "Подбор гиперпараметров и интерпретируемость",
+   "status": "passed",
+   "notebook": "hw11/hw11_solution.ipynb",
+   "required_passed": 11,
+   "required_total": 11,
+   "reviewed_by_model": true,
+   "strengths": "Графики подписаны и читаются без пояснений: оси, единицы, легенда на месте.",
+   "summary": "Задание выполнено, разбор корректный. Следующий шаг — сравнить с бейзлайном.",
+   "findings": []
+  },
+  "hw12": {
+   "title": "Кластеризация II — DBSCAN",
+   "status": "passed",
+   "notebook": "hw12/hw12_solution.ipynb",
+   "required_passed": 8,
+   "required_total": 8,
+   "reviewed_by_model": true,
+   "strengths": "Выводы сформулированы своими словами, а не пересказом вывода библиотеки.",
+   "summary": "Основное сделано, но выводов не хватает: допиши, что именно показал результат.",
+   "findings": []
+  },
+  "hw13": {
+   "title": "Снижение размерности — PCA, t-SNE, UMAP",
+   "status": "missing",
+   "notebook": null,
+   "required_passed": 0,
+   "required_total": 0,
+   "reviewed_by_model": false,
+   "strengths": "",
+   "summary": "",
+   "findings": []
+  }
+ },
+ "similarity": [],
+ "portrait": {
+  "portrait": "Ты идёшь ровно и закрываешь темы подряд — база собрана, дальше стоит углубляться.",
+  "growth": [
+   {
+    "topic": "hw11",
+    "title": "Подбор гиперпараметров и интерпретируемость: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Подбор гиперпараметров",
+      "url": "https://education.yandex.ru/handbook/ml/article/podbor-giperparametrov"
+     }
+    ]
+   },
+   {
+    "topic": "hw01",
+    "title": "Настройка окружения, NumPy и Pandas: стоит вернуться",
+    "why": "Тема закрыта не полностью — она понадобится дальше.",
+    "codes": [],
+    "links": [
+     {
+      "title": "Задание HW01",
+      "url": "rubrics/tasks/hw01.md"
+     }
+    ]
+   }
+  ],
+  "next_steps": "Перечитай главу Хендбука про валидацию и переделай последнюю домашку."
+ }
+}

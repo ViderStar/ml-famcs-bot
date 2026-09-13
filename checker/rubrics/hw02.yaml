@@ -1,0 +1,91 @@
+id: hw02
+title: Разведочный анализ данных (EDA)
+kind: free
+task: tasks/hw02.md
+template: null
+signature:
+  # Отличительная черта: полный набор EDA-инструментов и отсутствие обучения моделей.
+  strong: ["describe(include", "kurt", "skew"]
+  weak: ["isnull().sum", "get_dummies", "plotly", "heatmap", "boxplot", "duplicated", "fillna", "quantile"]
+  filename: [hw02, eda, analysis, разведочный]
+checks:
+  - id: overview
+    title: head/tail/shape/info/describe
+    required: true
+    kind: rule
+    all_regex: ['\.head\s*\(', '\.info\s*\(', '\.describe\s*\(']
+  - id: describe_object
+    title: Отдельный describe для строковых колонок
+    required: true
+    kind: rule
+    any_regex: ['describe\s*\(\s*include']
+  - id: quality
+    title: Пропуски и дубликаты
+    required: true
+    kind: rule
+    all_regex: ['isnull|isna', 'duplicated']
+  - id: missing_strategies
+    title: Показаны обе стратегии — dropna и fillna
+    required: true
+    kind: rule
+    all_regex: ['dropna', 'fillna']
+  - id: mode_fill
+    title: Мода для заполнения категориальных пропусков
+    required: true
+    kind: rule
+    any_regex: ['\.mode\s*\(']
+  - id: quantiles
+    title: Перцентили или квантили
+    required: true
+    kind: rule
+    any_regex: ['quantile', 'percentile']
+  - id: skew_kurt
+    title: Дисперсия, асимметрия и эксцесс
+    required: true
+    kind: rule
+    all_regex: ['var\s*\(|variance', 'skew', 'kurt']
+  - id: encoding
+    title: Кодирование категорий — OneHot или get_dummies
+    required: true
+    kind: rule
+    any_regex: ['get_dummies', 'OneHotEncoder']
+  - id: feature_engineering
+    title: Созданы новые признаки
+    required: true
+    kind: llm
+  - id: three_libs
+    title: Использованы все три библиотеки визуализации
+    required: true
+    kind: rule
+    # Импорт не считается использованием: plotly часто импортируют и забывают.
+    all_regex: ['plt\.\w+\s*\(|\.plot\s*\(|\.hist\s*\(',
+                'sns\.\w+\s*\(',
+                'px\.\w+\s*\(|go\.\w+\s*\(|\.iplot\s*\(']
+  - id: plot_kinds
+    title: Гистограмма, scatter, boxplot, bar/count, heatmap корреляций
+    required: true
+    kind: rule
+    all_regex: ['hist', 'scatter', 'box(plot)?', 'bar|count', 'heatmap|corr']
+  - id: conclusions
+    title: 7–12 буллетов «что я понял про датасет»
+    required: true
+    kind: rule
+    markdown_bullets_min: 7
+  - id: hypotheses
+    title: 3–5 гипотез и наблюдений
+    required: true
+    kind: llm
+  - id: ai_block
+    title: Блок про подсказки AI и что проверялось руками
+    required: false
+    kind: rule
+    any_regex: ['(?i)\b(ai|gpt|claude|нейросет|ассистент|copilot|deepseek|gemini)\b']
+  - id: dataset_link
+    title: Ссылка на датасет в начале ноутбука
+    required: false
+    kind: rule
+    any_regex: ['(?i)kaggle\.com|archive\.ics\.uci\.edu|https?://\S+\.(csv|zip)']
+  - id: justified_imputation
+    title: Выбор стратегии заполнения пропусков обоснован текстом
+    required: true
+    kind: llm

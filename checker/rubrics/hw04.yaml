@@ -1,0 +1,60 @@
+id: hw04
+title: Линейная регрессия
+kind: free
+task: tasks/hw04.md
+template: null
+# Ноутбук практики с лекции: в materials его нет, восстановлен из корпуса.
+extra_templates: [lin_reg_practice.ipynb]
+signature:
+  strong: [LinearRegression, ToyotaCorolla]
+  weak: ["Ridge", "Lasso", "r2_score", "mean_squared_error", "PolynomialFeatures", "VIF", "мультиколлинеарн"]
+  filename: [hw04, linreg, linear, регрессия, lin_reg]
+checks:
+  - id: eda
+    title: EDA и предобработка
+    required: true
+    kind: rule
+    any_regex: ['\.describe\s*\(|\.info\s*\(|isnull|corr\s*\(']
+  - id: split
+    title: Разделение выборки
+    required: true
+    kind: rule
+    any_regex: ['train_test_split', 'KFold', 'cross_val']
+  - id: model
+    title: Обучена линейная модель
+    required: true
+    kind: rule
+    any_regex: ['LinearRegression', 'Ridge', 'Lasso', 'ElasticNet', 'SGDRegressor']
+  - id: feature_engineering
+    title: Работа с признаками — добавление, удаление, кодирование
+    required: true
+    kind: rule
+    any_regex: ['get_dummies', 'OneHotEncoder', 'PolynomialFeatures', 'drop\s*\(']
+  - id: scaling
+    title: Масштабирование признаков
+    required: true
+    kind: rule
+    any_regex: ['StandardScaler', 'MinMaxScaler', 'RobustScaler']
+  - id: regularization
+    title: Регуляризация как ответ на мультиколлинеарность
+    required: true
+    kind: rule
+    any_regex: ['Ridge', 'Lasso', 'ElasticNet', 'alpha\s*=']
+  - id: metrics
+    title: Метрики регрессии с обоснованием выбора
+    required: true
+    kind: rule
+    all_regex: ['r2_score|R\^?2', 'mean_squared_error|mean_absolute_error|RMSE|MAE']
+  - id: baseline
+    title: Базовое решение для сравнения
+    required: false
+    kind: rule
+    any_regex: ['DummyRegressor', 'baseline|бейзлайн|базов']
+  - id: reads_as_research
+    title: Работа читается как исследование, а не набор ячеек
+    required: true
+    kind: llm
+  - id: metric_choice_justified
+    title: Обоснован выбор метрик — почему RMSE, а не MAE, зачем R²
+    required: true
+    kind: llm

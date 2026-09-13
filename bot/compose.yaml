@@ -1,0 +1,33 @@
+services:
+  mlbot:
+    build:
+      context: ..
+      dockerfile: bot/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_ROOT: /data
+      DB_PATH: /state/mlbot.sqlite3
+      # out/ смонтирован только на чтение — бот пишет свои выгрузки сюда.
+      EXPORT_DIR: /state/export
+      DEMO_ROOT: /app/bot/demo
+      # Направления третьего сезона правятся файлом, без пересборки образа.
+      TRACKS_PATH: /app/bot/season3/tracks.toml
+    volumes:
+      # Отчёты, каталог ошибок и материалы — только на чтение.
+      - ../out:/data/out:ro
+      - ../checker:/data/checker:ro
+      - ../materials:/data/materials:ro
+      # Сертификаты и фотографии с вручения.
+      - ../certificates_2nd_season:/data/certificates_2nd_season:ro
+      # Привязки и события переживают пересборку образа.
+      - mlbot-state:/state
+      # Направления третьего сезона — файлом, чтобы менять преподавателей
+      # и число занятий без пересборки образа.
+      - ./src/mlbot/season3/tracks.toml:/app/bot/season3/tracks.toml:ro
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  mlbot-state:
