@@ -13,6 +13,9 @@ WORKDIR /app
 COPY checker/ /app/checker/
 COPY bot/pyproject.toml bot/uv.lock* /app/bot/
 COPY bot/src/ /app/bot/src/
+# Вымышленные студенты для проверки экранов: маленькие и целиком выдуманные,
+# поэтому едут в образ, а не монтируются снаружи.
+COPY bot/demo/ /app/bot/demo/
 
 WORKDIR /app/bot
 RUN uv sync --no-dev
