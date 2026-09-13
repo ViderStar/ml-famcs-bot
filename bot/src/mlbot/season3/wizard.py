@@ -1,17 +1,18 @@
-"""Анкета третьего сезона — данные, а не двенадцать обработчиков.
+"""The season 3 application form — data, not twelve handlers.
 
-Каждый шаг описан кортежем: что спросить, чем ответить, как проверить. Дальше
-один обработчик текста, один обработчик нажатия и одна функция перехода. Добавить
-поле — добавить строку.
+Each step is a tuple: what to ask, how it is answered, how to validate. After
+that: one text handler, one press handler and one transition function. Adding a
+field means adding a line.
 
-Почему шкалы и университет — кнопками. В форме второго сезона те же поля были
-текстовыми, и в числовых ответах лежит «Бро», «1.5», «между 2 и 3» и целое
-предложение про свёрточные архитектуры. Это не небрежность анкетируемых, это
-свойство поля ввода. Кнопка делает такой ответ физически невозможным.
+Why scales and university are buttons. In the season 2 form the same fields were
+free text, and the numeric answers contain "Бро", "1.5", "between 2 and 3" and a
+whole sentence about convolutional architectures. That is not carelessness on
+the respondents' part, it is a property of the input field. A button makes such
+an answer physically impossible.
 
-Телеграм не спрашиваем: `tg_id` и `username` приходят с апдейтом и подделать их
-нельзя. Именно это упрощение снимает весь класс проблем, из-за которого во
-втором сезоне появились заявки на доступ.
+Telegram is not asked for: `tg_id` and `username` arrive with the update and
+cannot be forged. That single simplification removes the whole class of problems
+that produced access claims in season 2.
 """
 
 from __future__ import annotations
@@ -20,8 +21,8 @@ import re
 from dataclasses import dataclass
 from typing import Callable
 
-Option = tuple[str, str]          # значение, подпись на кнопке
-OTHER = "__other__"               # «другое» — переводит шаг в свободный ввод
+Option = tuple[str, str]          # value, button caption
+OTHER = "__other__"               # "other" — switches the step to free text
 SKIP = "__skip__"
 
 
@@ -34,11 +35,11 @@ class Step:
     validate: Callable[[str], str | None] | None = None
     optional: bool = False
     min_choices: int = 0
-    # Варианты, зависящие от уже данных ответов (факультет — от университета).
+    # Options that depend on answers already given (faculty on university).
     options_for: Callable[[dict], tuple[Option, ...]] | None = None
     allow_other: bool = False
     hint: str = ""
-    short: str = ""          # короткое имя поля: для сводки и заголовка таблицы
+    short: str = ""          # short field name: for the summary and the table header
 
     @property
     def name(self) -> str:
@@ -48,7 +49,7 @@ class Step:
         return self.options_for(answers) if self.options_for else self.options
 
 
-# --- проверки -------------------------------------------------------------------
+# --- validation -------------------------------------------------------------------
 
 _EMAIL = re.compile(r"^[^@\s]+@[^@\s.]+\.[^@\s]{2,}$")
 
@@ -76,7 +77,7 @@ def check_free(value: str) -> str | None:
     return None
 
 
-# --- справочники ------------------------------------------------------------------
+# --- reference data -----------------------------------------------------------------
 
 UNIVERSITIES: tuple[Option, ...] = (
     ("БГУ", "БГУ"),
@@ -86,8 +87,8 @@ UNIVERSITIES: tuple[Option, ...] = (
     ("Лицей БГУ", "Лицей БГУ"),
 )
 
-# Факультеты по университетам — из регистрации второго сезона, где они
-# встречались не единожды. Остальное закрывает «другой».
+# Faculties by university — from the season 2 registration, where each appeared
+# more than once. Everything else is covered by "other".
 FACULTIES: dict[str, tuple[Option, ...]] = {
     "БГУ": (("ФПМИ", "ФПМИ"), ("ММФ", "ММФ"), ("ФизФак", "Физфак"),
             ("ЭФ", "ЭФ"), ("БиоФак", "Биофак")),
@@ -134,12 +135,12 @@ def _faculties(answers: dict) -> tuple[Option, ...]:
 
 
 def _tracks(answers: dict) -> tuple[Option, ...]:
-    """Направления живут в TOML: преподаватели уточняются до самого старта."""
+    """Tracks live in TOML: teachers are still being confirmed up to the start."""
     from . import current_season
     return tuple((t.id, t.button) for t in current_season().open)
 
 
-# --- сами шаги ---------------------------------------------------------------------
+# --- the steps themselves --------------------------------------------------------------
 
 STEPS: tuple[Step, ...] = (
     Step("fio", "Как тебя зовут? Фамилия, имя, отчество.", "text", validate=check_fio,
@@ -184,10 +185,10 @@ def index(step_id: str) -> int:
 
 
 def next_step(step_id: str, answers: dict) -> Step | None:
-    """Следующий шаг. Пропускает те, спрашивать которые незачем.
+    """The next step. Skips the ones there is no point asking.
 
-    Факультет у школьника и у выпускника не спрашиваем — во втором сезоне на
-    этом месте появлялись «-», «Ф» и прочерки.
+    A school pupil and an alumnus are not asked for a faculty — in season 2 that
+    field filled up with "-", "Ф" and dashes.
     """
     i = index(step_id)
     for nxt in STEPS[i + 1:]:
@@ -198,7 +199,7 @@ def next_step(step_id: str, answers: dict) -> Step | None:
 
 
 def missing(answers: dict) -> list[Step]:
-    """Обязательные шаги без ответа — их показывает сводка перед отправкой."""
+    """Required steps with no answer — the summary shows these before submission."""
     out = []
     for s in STEPS:
         if s.optional:
@@ -212,7 +213,7 @@ def missing(answers: dict) -> list[Step]:
 
 
 def label_of(s: Step, value, answers: dict) -> str:
-    """Человеческая подпись ответа для сводки."""
+    """A human-readable label for an answer, for the summary."""
     if value in (None, "", []):
         return "—"
     if s.kind == "multi":

@@ -1,11 +1,11 @@
-"""Рассылка выпускникам: поздравление, сертификат, фотография, форма отзыва.
+"""The graduate mailing: congratulations, certificate, photo, feedback form.
 
-Разовое действие, но написано как возобновляемое: каждому отправленному пишется
-событие `awards_sent`, и повторный запуск такого студента пропускает. Если
-рассылка оборвётся на середине — лимитом, сетью, чем угодно, — её можно просто
-запустить снова, и никто не получит два сертификата.
+A one-off action, but written as resumable: every send records an `awards_sent`
+event, and a rerun skips that student. If the mailing breaks halfway — rate
+limit, network, anything — it can simply be started again, and nobody receives
+two certificates.
 
-Запуск внутри контейнера, токен берётся из окружения:
+Run inside the container; the token comes from the environment:
 
     docker compose run --rm --entrypoint "" -T mlbot \\
         uv run --no-dev python -m mlbot.announce --dry-run
@@ -28,13 +28,13 @@ from .data import Course, Student
 from .store import Store
 
 SENT = "awards_sent"
-# Пауза между отправками. Телеграм разрешает больше, но файлы тяжёлые, а спешить
-# некуда: полсотни человек разойдутся за пару минут.
+# Pause between sends. Telegram allows more, but the files are heavy and there is
+# no hurry: fifty people go out in a couple of minutes.
 PAUSE = 1.0
 
 
 def recipients(course: Course, bound: dict[str, int]) -> list[tuple[Student, int]]:
-    """Выпускники, у которых есть привязанный аккаунт."""
+    """Graduates who have a bound account."""
     out = []
     for st in course.active:
         if st.certificate and st.key in bound:
@@ -110,7 +110,7 @@ async def run(dry_run: bool, limit: int | None) -> int:
         for st, tg_id in todo:
             try:
                 await _send(bot, tg_id, course, st)
-            except Exception as exc:               # заблокировал бота, удалил аккаунт
+            except Exception as exc:               # blocked the bot, deleted the account
                 failed.append((st.fio, type(exc).__name__))
                 log.info("  ✗ %s: %s", st.fio, exc)
                 continue

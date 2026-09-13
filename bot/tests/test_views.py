@@ -1,4 +1,4 @@
-"""Экраны рендерятся для всех 205 студентов, без падений и без превышения лимита."""
+"""Screens render for every student, with no crashes and within the length limit."""
 
 import re
 
@@ -46,10 +46,10 @@ def test_every_finding_renders(course):
                 for chunk in split(finding_text(course, hw_id, f)):
                     assert len(chunk) <= LIMIT
                     assert _tags_balanced(chunk), f"{student.key}/{hw_id}/{f['code']}"
-    # Порог — проверка, что данные вообще на месте, а не точная цифра: он
-    # считается от размера потока, поэтому переживает и перепрогон рецензий,
-    # и подмену корпуса на синтетический.
-    assert total > 3 * len(course.active), "замечаний подозрительно мало"
+    # The threshold checks the data is there at all, not an exact number: it is
+    # computed from the stream size, so it survives both a review rerun and
+    # swapping the corpus for the synthetic one.
+    assert total > 3 * len(course.active), "suspiciously few findings"
 
 
 def test_every_catalog_article_renders(course):
@@ -62,7 +62,7 @@ def test_every_catalog_article_renders(course):
 
 
 def test_every_finding_offers_something_to_read(course):
-    """У каждой находки должна быть внешняя ссылка — либо своя, либо из статьи."""
+    """Every finding must have an external link — its own or one from the article."""
     without = set()
     for student in course.active:
         for hw in student.homeworks.values():

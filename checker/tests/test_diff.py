@@ -1,4 +1,4 @@
-"""Сравнение сборок: перевороты вердиктов и сертификаты."""
+"""Comparing builds: verdict flips and certificates."""
 
 import json
 
@@ -31,7 +31,7 @@ def test_compare_counts_certificates_and_flips(tmp_path):
         ("a", "hw01", "failed", "passed"), ("b", "hw01", "passed", "failed")}
     text = diff.render(d, "v1", "v2")
     assert "смотреть обязательно" in text and "упало" in text
-    assert text.count("<") == 0                      # markdown, не html
+    assert text.count("<") == 0                      # markdown, not html
 
 
 def test_excluded_students_are_skipped(tmp_path):

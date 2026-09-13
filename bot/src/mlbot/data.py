@@ -1,8 +1,8 @@
-"""Данные курса в памяти: отчёты студентов, каталог ошибок, материалы.
+"""Course data in memory: student reports, the error catalog, materials.
 
-Всего около шести мегабайт, поэтому читаем целиком при старте. Перечитать
-на живом боте можно командой администратора — файлы на диске могут обновиться
-после повторного прогона проверки.
+About six megabytes in total, so it is read whole at startup. An admin command
+rereads it on a running bot — files on disk can change after another grading
+pass.
 """
 
 from __future__ import annotations
@@ -22,8 +22,8 @@ from mlcheck.rubric import load_dir as load_rubrics_dir
 
 from .config import Config
 
-# Слайды и конспекты лекций по темам. Имена файлов в materials/ разнородные,
-# поэтому сопоставление задано явно, а не угадывается.
+# Lecture slides and notes by topic. File names in materials/ are inconsistent,
+# so the mapping is spelled out rather than guessed.
 MATERIALS: dict[str, tuple[tuple[str, str], ...]] = {
     "hw03": (("Слайды лекции по KNN", "KNN_final.pptx"),),
     "hw04": (("Лекция: линейная регрессия", "Лекция 4_ Линейная_регрессия.pdf"),),
@@ -48,7 +48,7 @@ STATUS_ICON = {"passed": "✅", "failed": "❌", "missing": "—"}
 
 @dataclass
 class Student:
-    """Отчёт одного студента, как он лежит в out/findings/<key>.json."""
+    """One student's report, as it lies in out/findings/<key>.json."""
 
     raw: dict
 
@@ -106,12 +106,12 @@ class Student:
 
     @property
     def portrait(self) -> dict | None:
-        """Портрет за курс из режима llm student; None, пока прогон не сделан."""
+        """Course portrait from llm student mode; None until that pass is done."""
         p = self.raw.get("portrait")
         return p if isinstance(p, dict) and p.get("portrait") else None
 
     def strengths(self) -> list[tuple[str, str]]:
-        """Пары (тема, что получилось хорошо) — только непустые."""
+        """Pairs of (topic, what went well) — non-empty ones only."""
         return [(hw, h["strengths"]) for hw, h in sorted(self.homeworks.items())
                 if h.get("strengths")]
 
@@ -126,17 +126,18 @@ class Course:
     tasks: dict[str, str] = field(default_factory=dict)
     attention: str = ""
 
-    # --- загрузка ---------------------------------------------------------------
+    # --- loading ------------------------------------------------------------------
 
     @classmethod
     def load(cls, cfg: Config, findings_dir: Path | None = None,
              season: str = "s2") -> "Course":
-        """Курс с диска.
+        """The course from disk.
 
-        `findings_dir` нужен для вымышленных студентов: демо-курс грузится из
-        отдельного каталога, а не подмешивается к настоящим. Иначе демо поехало
-        бы в медиану, перцентиль и число сертификатов, и заметить это было бы
-        нечем — цифры просто тихо съехали бы.
+        `findings_dir` exists for the fictional students: the demo course loads
+        from its own directory instead of being mixed into the real one.
+        Otherwise demo would seep into the median, the percentile and the
+        certificate count, with nothing to notice it by — the numbers would just
+        quietly shift.
         """
         students = {}
         for p in sorted((findings_dir or cfg.findings_dir).glob("*.json")):
@@ -161,10 +162,10 @@ class Course:
         )
 
     def refresh(self) -> None:
-        """Перечитывает данные с диска в этот же объект.
+        """Rereads data from disk into this same object.
 
-        Обработчики получают Course по ссылке, поэтому подменять объект нельзя —
-        обновляем содержимое на месте и сбрасываем закэшированные агрегаты.
+        Handlers hold Course by reference, so the object cannot be swapped —
+        the contents are refreshed in place and cached aggregates are dropped.
         """
         load_catalog_dir.cache_clear()
         load_rubrics_dir.cache_clear()
@@ -180,7 +181,7 @@ class Course:
                      "awards"):
             self.__dict__.pop(name, None)
 
-    # --- справочники ------------------------------------------------------------
+    # --- reference data ---------------------------------------------------------
 
     @property
     def graded_ids(self) -> list[str]:
@@ -192,7 +193,7 @@ class Course:
 
     @cached_property
     def certificate_ratio(self) -> float:
-        """Порог из конфига проверки — чтобы бот и отчёты говорили одно и то же."""
+        """The threshold from the grader config — so bot and reports say the same thing."""
         import tomllib
 
         path = self.cfg.checker_dir / "config.toml"
@@ -204,7 +205,7 @@ class Course:
 
     @cached_property
     def hw_pass_ratio(self) -> float:
-        """Доля обязательных пунктов, при которой домашка зачтена."""
+        """Share of required items at which a homework passes."""
         import tomllib
 
         path = self.cfg.checker_dir / "config.toml"
@@ -216,7 +217,7 @@ class Course:
 
     @cached_property
     def required_passed(self) -> int:
-        """Сколько домашек нужно для сертификата, той же формулой, что в checker."""
+        """How many homework a certificate needs, by the same formula as checker."""
         from mlcheck.report import required_passed_for
 
         return required_passed_for(self.certificate_ratio, self.total_graded)
@@ -240,7 +241,7 @@ class Course:
         return self.tasks.get(hw_id)
 
     def reading(self, hw_id: str) -> list[tuple[str, str]]:
-        """Внешние ссылки по теме — объединение ссылок из её статей каталога."""
+        """External links for a topic — the union of links from its catalog articles."""
         seen: dict[str, str] = {}
         for code, art in self.catalog.items():
             if not code.startswith(f"{hw_id}."):
@@ -250,15 +251,15 @@ class Course:
                     seen[url] = title
         return [(t, u) for u, t in seen.items()]
 
-    # --- агрегаты по потоку -----------------------------------------------------
+    # --- stream aggregates ------------------------------------------------------
 
     @cached_property
     def awards(self) -> dict:
-        """Реестр наград: чей сертификат и чья фотография с вручения.
+        """Award registry: whose certificate and whose ceremony photo.
 
-        Собирается командой `mlcheck awards`: имена читаются из самих PDF, потому
-        что файлы называются `sertificate_original-N.pdf`, а отправить студенту
-        чужой сертификат нельзя — там его ФИО.
+        Built by `mlcheck awards`: names are read from the PDFs themselves,
+        because the files are called `sertificate_original-N.pdf` and sending a
+        student someone else's certificate is not an option — it carries a name.
         """
         from mlcheck.awards import load_awards
 
@@ -280,17 +281,17 @@ class Course:
 
     @cached_property
     def known_links(self) -> set[str]:
-        """Все внешние ссылки каталога — третий фильтр для ссылок из портрета."""
+        """All external catalog links — the third filter for links from a portrait."""
         from mlcheck.llm import allowed_urls
 
         return allowed_urls(self.catalog)
 
     @cached_property
     def expected_usernames(self) -> dict[str, str]:
-        """Ключ студента → username, закреплённый за записью формой регистрации.
+        """Student key → the username recorded for that record by the registration form.
 
-        Только проверенные связки: за такой записью стоит живой аккаунт, и
-        привязать её к другому телеграму без ведома преподавателя нельзя.
+        Verified links only: behind such a record stands a live account, and it
+        cannot be tied to another telegram without the teacher knowing.
         """
         from mlcheck.telegram import read_map
 
@@ -303,11 +304,11 @@ class Course:
 
     @cached_property
     def usernames(self) -> dict[str, str]:
-        """username в нижнем регистре → ключ студента.
+        """Lowercase username → student key.
 
-        Сшито из формы регистрации на курс (`mlcheck telegram`). Берём только
-        связки, которые модуль счёл надёжными и username которых существует:
-        остальные проходят обычную привязку по ФИО и ссылке.
+        Stitched from the course registration form (`mlcheck telegram`). Only
+        links the module judged reliable and whose username exists: the rest go
+        through the usual binding by name and repository link.
         """
         from mlcheck.telegram import read_map
 
@@ -334,7 +335,7 @@ class Course:
         return sum(1 for s in self.active if s.certificate)
 
     def percentile(self, student: Student) -> int:
-        """Доля потока, у которой закрыто не больше, чем у этого студента."""
+        """Share of the stream that has closed no more topics than this student."""
         if not self.active:
             return 0
         below = sum(1 for s in self.active if s.passed <= student.passed)
@@ -342,7 +343,7 @@ class Course:
 
     @cached_property
     def hw_stats(self) -> dict[str, dict]:
-        """По каждой теме: сдач, зачётов, топ ошибок."""
+        """Per topic: submissions, passes, top findings."""
         stats: dict[str, dict] = {}
         for hw_id in sorted(self.rubrics):
             subs = passed = 0

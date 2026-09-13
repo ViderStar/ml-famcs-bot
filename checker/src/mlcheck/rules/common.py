@@ -1,4 +1,4 @@
-"""Проверки, общие для всех домашек: запускается ли работа и заполнена ли она."""
+"""Checks common to every homework: does the work run and is it filled in."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from ..nbio import Notebook
 from .base import Finding, Severity
 
 _SEED = re.compile(r"random_state|np\.random\.seed|default_rng\s*\(\s*\d|set_seed|random\.seed")
-# Требовать seed осмысленно только там, где случайность вообще есть: в чистом
-# EDA без разбиения выборки и обучения фиксировать нечего.
+# Demanding a seed makes sense only where randomness exists: pure EDA with no
+# split and no training has nothing to fix.
 _STOCHASTIC = re.compile(
     r"train_test_split|KFold|ShuffleSplit|cross_val|\.sample\s*\(|np\.random|"
     r"random\.|RandomForest|GradientBoosting|XGB|LGBM|CatBoost|KMeans|DBSCAN|TSNE|"
@@ -23,7 +23,7 @@ def markdown_bullets(nb: Notebook) -> int:
 
 
 def own_markdown(nb: Notebook, template_md: frozenset[str]) -> str:
-    """Текст студента: из markdown вычитаются ячейки раздаточной заготовки."""
+    """The student's prose: template cells are subtracted from the markdown."""
     return "\n".join(
         c.source for c in nb.markdown_cells
         if re.sub(r"\s+", " ", c.source).strip() not in template_md
@@ -50,7 +50,7 @@ def check(nb: Notebook, hw: str, template_md: frozenset[str] = frozenset()) -> l
         ))
         return out
 
-    # Незаполненные ячейки-заготовки.
+    # Unfilled template cells.
     blanks = [c.index for c in code if c.is_empty and c.has_marker]
     if blanks:
         share = len(blanks) / max(len(code), 1)
@@ -62,7 +62,7 @@ def check(nb: Notebook, hw: str, template_md: frozenset[str] = frozenset()) -> l
             cells=blanks,
         ))
 
-    # Выполнение.
+    # Execution.
     executed = [c for c in nonempty if c.executed]
     if not executed:
         out.append(Finding(
@@ -81,7 +81,7 @@ def check(nb: Notebook, hw: str, template_md: frozenset[str] = frozenset()) -> l
             cells=missing,
         ))
 
-    # Ошибки в сохранённых выводах.
+    # Errors in the saved outputs.
     err_cells = nb.error_cells
     if err_cells:
         names = []
@@ -95,7 +95,7 @@ def check(nb: Notebook, hw: str, template_md: frozenset[str] = frozenset()) -> l
             cells=[c.index for c in err_cells],
         ))
 
-    # Порядок выполнения: признак того, что «Restart & Run All» не делали.
+    # Execution order: a sign that "Restart & Run All" was never done.
     breaks = nb.execution_order_breaks()
     if breaks and executed:
         out.append(Finding(
@@ -105,8 +105,8 @@ def check(nb: Notebook, hw: str, template_md: frozenset[str] = frozenset()) -> l
             cells=[c for c, _ in breaks],
         ))
 
-    # Текстовые выводы. В работах на заготовке весь markdown может быть
-    # раздаточным, поэтому считаем отдельно то, что написал студент.
+    # Prose conclusions. In template-based work all the markdown may be handout,
+    # so what the student wrote is counted separately.
     md_chars = len(nb.markdown_text.strip())
     own_chars = len(own_markdown(nb, template_md).strip())
     if md_chars < 200:
@@ -132,14 +132,14 @@ def check(nb: Notebook, hw: str, template_md: frozenset[str] = frozenset()) -> l
     return out
 
 
-# --- проверки, найденные разведочным проходом по реальным работам ----------------
+# --- checks discovered by the exploratory pass over real submissions --------------
 
 _CYRILLIC = re.compile(r"[а-яё]", re.I)
 _ABS_PATH = re.compile(
     r"""read_(?:csv|excel|parquet|json)\s*\(\s*["'](/(?!content/)[^"']+|[A-Za-z]:[\\/][^"']+)["']""")
 _COLAB_PATH = re.compile(r"""read_\w+\s*\(\s*["']/content/[^"']+["']""")
 _WARN_OFF = re.compile(r"warnings\.filterwarnings\s*\(\s*['\"]ignore")
-# Секреты в открытом виде. Само значение в находку не попадает — только факт.
+# Secrets in plain text. The value itself never reaches the finding — only the fact.
 _SECRETS = (
     ("ключ Kaggle API", re.compile(r"\bKGAT_[A-Za-z0-9]{20,}")),
     ("токен OpenAI", re.compile(r"\bsk-[A-Za-z0-9]{32,}")),
@@ -147,22 +147,22 @@ _SECRETS = (
     ("ключ AWS", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
     ("kaggle.json с ключом", re.compile(r'"username"\s*:\s*"[^"]+"\s*,\s*"key"\s*:\s*"[a-f0-9]{32}"')),
 )
-# Текст, адресованный проверяющей системе, а не читателю.
+# Text addressed to the grading system rather than to a reader.
 _INJECTION = re.compile(
     r"(?:игн[оа]рируй|ингорируй|забудь)\s+(?:все\s+)?предыдущие\s+инструкц"
     r"|ignore\s+(?:all\s+)?(?:previous|prior)\s+instructions"
     r"|disregard\s+(?:all\s+)?(?:previous|prior)\s+instructions",
     re.I)
-# plt.show без скобок: функция не вызывается, в вывод падает её repr.
+# plt.show without parentheses: the function is not called, its repr lands in the output.
 _SHOW_NO_CALL = re.compile(r"^\s*(?:plt|pyplot|fig)\.show\s*$", re.M)
-# Вызов, результат которого никуда не записывается и который не меняет объект на месте.
+# A call whose result goes nowhere and which does not modify the object in place.
 _NO_EFFECT = re.compile(
     r"^\s*[\w\]\['\"\.]+\.(dropna|drop_duplicates|fillna|drop|rename|replace|"
     r"sort_values|reset_index|astype|set_index|drop_duplicates)\s*\([^=]*\)\s*$")
 
 
 def _split_without_seed(src: str) -> bool:
-    """train_test_split без random_state: разбиение поедет при каждом запуске."""
+    """train_test_split with no random_state: the split shifts on every run."""
     for m in re.finditer(r"train_test_split\s*\(", src):
         depth, i = 0, m.end() - 1
         while i < len(src):
@@ -179,10 +179,10 @@ def _split_without_seed(src: str) -> bool:
 
 
 def check_extra(nb: Notebook, hw: str) -> list[Finding]:
-    """Находки, добавленные после разбора реальных работ курса."""
+    """Findings added after reviewing real course submissions."""
     out: list[Finding] = []
 
-    # Выводы, написанные комментариями внутри пустых ячеек кода.
+    # Conclusions written as comments inside empty code cells.
     comment_cells = [
         c.index for c in nb.code_cells
         if c.is_empty and len(_CYRILLIC.findall(c.source)) >= 20
@@ -222,7 +222,7 @@ def check_extra(nb: Notebook, hw: str) -> list[Finding]:
         out.append(Finding(
             code="common.secret_in_repo", hw=hw, severity=Severity.CRITICAL,
             title="В репозитории лежит ключ доступа",
-            detail=", ".join(leaked),   # значение ключа сознательно не сохраняем
+            detail=", ".join(leaked),   # the key value is deliberately not stored
         ))
 
     show_cells = [

@@ -1,4 +1,4 @@
-"""Загрузка config.toml и разрешение путей относительно корня checker/."""
+"""Loading config.toml and resolving paths relative to the checker/ root."""
 
 from __future__ import annotations
 
@@ -33,8 +33,8 @@ class Paths:
         return self.out / "cache"
 
 
-# eq=False даёт хэш по идентичности: внутри лежат словари, а объект и так
-# синглтон из load(), поэтому lru_cache по нему работает корректно.
+# eq=False gives identity hashing: it holds dicts inside, and the object is a
+# singleton from load() anyway, so lru_cache over it works correctly.
 @dataclass(frozen=True, eq=False)
 class Config:
     paths: Paths

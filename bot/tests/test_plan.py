@@ -1,4 +1,4 @@
-"""«Что подтянуть» и «Сильные стороны»: про ML, а не про ячейки."""
+""""What to improve" and "Strengths": about ML, not about cells."""
 
 from mlbot.views import best_link, plan_text, strengths_text, why_paragraph
 
@@ -19,7 +19,7 @@ def test_plan_renders_for_the_whole_cohort(course):
 
 
 def test_plan_never_recommends_hygiene(course):
-    """«Выполни ячейки» — верно, но для рефлексии бесполезно."""
+    """"Run the cells" is true but useless for reflection."""
     hygiene_titles = {a.title for a in course.catalog.values() if a.kind == "hygiene"}
     for st in course.active:
         text, _ = plan_text(course, st)
@@ -29,11 +29,11 @@ def test_plan_never_recommends_hygiene(course):
 
 
 def test_plan_items_carry_a_link(course):
-    """У совета есть куда пойти читать.
+    """Every piece of advice has somewhere to read further.
 
-    Без портрета — ровно одна ссылка на пункт (fallback по кодам). С портретом
-    ссылок у пункта 0–3: модель вправе оставить список пустым, если подходящей
-    ссылки в каталоге нет, — но все они обязаны быть из каталога.
+    Without a portrait: exactly one link per item (the code-based fallback). With
+    one: 0-3 links per item — the model may leave the list empty when the catalog
+    has no suitable link — but every link must come from the catalog.
     """
     seen = 0
     for st in course.active:
@@ -48,7 +48,7 @@ def test_plan_items_carry_a_link(course):
         else:
             assert block.count("📖") == len(items), st.key
         seen += 1
-    # Больше половины потока: порог от размера корпуса, а не абсолютное число.
+    # More than half the stream: a threshold from the corpus size, not an absolute.
     assert seen > len(course.active) // 2
 
 
@@ -74,7 +74,7 @@ def test_results_points_to_strengths_screen(course):
     text = results_text(course, st)
     assert "Сильные стороны" in text
     if st.portrait:
-        assert st.portrait["portrait"][:80] in text          # портрет за курс на экране
+        assert st.portrait["portrait"][:80] in text          # the course portrait is on the screen
     else:
         assert f"в {len(st.strengths())} темах" in text
 
@@ -107,7 +107,7 @@ def test_portrait_drives_results_plan_and_strengths(course):
     text, links = plan_text(course, st)
     assert "Утечки при препроцессинге" in text and "hw04" in text
     assert "Собери пайплайн" in text
-    # Чужая ссылка отфильтрована, каталожная осталась.
+    # The foreign link was filtered out, the catalog one stayed.
     assert "evil.example" not in text and url in text
     assert links == [("Кросс-валидация", url)]
 

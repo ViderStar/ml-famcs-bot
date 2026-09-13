@@ -1,4 +1,4 @@
-"""Третий сезон: направления, анкета, домашки."""
+"""Season 3: tracks, the application form, homework."""
 
 from __future__ import annotations
 
@@ -10,10 +10,10 @@ _SEASON: Season | None = None
 
 
 def current_season(path: Path | None = None) -> Season:
-    """Направления, прочитанные один раз.
+    """Tracks, read once.
 
-    Кэш, а не глобальная константа: путь к файлу задаёт окружение, а тесты
-    подменяют сезон целиком через `set_season`.
+    A cache rather than a global constant: the environment sets the file path,
+    and tests substitute the whole season through `set_season`.
     """
     global _SEASON
     if _SEASON is None or path is not None:

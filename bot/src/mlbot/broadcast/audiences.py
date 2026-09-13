@@ -1,9 +1,9 @@
-"""Кому писать. Реестр — по той же причине, что и реестр меню: чтобы новую
-аудиторию можно было добавить одной строкой, а тест мог обойти все.
+"""Who to write to. A registry, for the same reason the menu is one: a new
+audience is one line, and a test can walk them all.
 
-Непривязанным бот написать не может: Bot API не даёт писать первым. Поэтому у
-каждой аудитории есть ещё и «недостижимые» — их видно на экране, и их можно
-выгрузить, чтобы позвать людей каналом.
+The bot cannot write to unbound people: the Bot API does not allow writing
+first. So every audience also reports the "unreachable" — they are shown on the
+screen and can be exported, to invite those people through the channel.
 """
 
 from __future__ import annotations
@@ -11,8 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Awaitable, Callable
 
-Target = tuple[int, str]          # чат и подпись для отчёта
-Picked = tuple[list[Target], list[str]]   # кому пишем, кого не достаём
+Target = tuple[int, str]          # chat and a label for the report
+Picked = tuple[list[Target], list[str]]   # who we write to, who we cannot reach
 
 
 @dataclass(frozen=True)
@@ -20,7 +20,7 @@ class Audience:
     id: str
     title: str
     pick: Callable[..., Awaitable[Picked]]
-    sandbox_safe: bool = False    # можно ли выбирать при включённом предохранителе
+    sandbox_safe: bool = False    # may it be chosen while the safety catch is on
 
 
 REGISTRY: dict[str, Audience] = {}
@@ -48,7 +48,7 @@ async def everyone(cfg, course, store) -> Picked:
 
 @audience("cert", "С сертификатом")
 async def with_certificate(cfg, course, store) -> Picked:
-    """Та же выборка, что у скрипта рассылки сертификатов, — и это закреплено тестом."""
+    """The same query the certificate mailing script uses — pinned by a test."""
     bound = {b.student_key: b.tg_id for b in await store.all_bindings()}
     pairs = [(st, bound[st.key]) for st in course.active
              if st.certificate and st.key in bound]
@@ -69,7 +69,7 @@ async def without_certificate(cfg, course, store) -> Picked:
 
 @audience("demo", "Вымышленные аккаунты", sandbox_safe=True)
 async def demo(cfg, course, store) -> Picked:
-    """Аккаунты, помеченные тестовыми: они и есть адресаты проверочной рассылки."""
+    """Accounts marked as test ones: they are the recipients of a trial broadcast."""
     everyone_ = await store.all_bindings(include_demo=True)
     real = {b.tg_id for b in await store.all_bindings()}
     return [(b.tg_id, b.tg_name or str(b.tg_id))
@@ -82,10 +82,10 @@ async def just_me(cfg, course, store, who: int | None = None) -> Picked:
 
 
 def available(cfg) -> list[Audience]:
-    """В песочнице — только безопасные.
+    """In the sandbox, only the safe ones.
 
-    Второй замок к предохранителю: даже если тот пропустит сообщение, список
-    настоящих студентов рассылке просто неоткуда взять.
+    The second lock behind the safety catch: even if it lets a message through,
+    a broadcast has nowhere to get a list of real students.
     """
     items = sorted(REGISTRY.values(), key=lambda a: a.id)
     if cfg.safe_mode:

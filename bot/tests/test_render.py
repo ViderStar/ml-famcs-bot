@@ -1,4 +1,4 @@
-"""Разметка для телеграма: конвертация, экранирование, нарезка."""
+"""Markup for Telegram: conversion, escaping, splitting."""
 
 from mlbot.render import LIMIT, SAFE, progress_bar, split, to_html
 

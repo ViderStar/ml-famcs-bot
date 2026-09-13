@@ -1,18 +1,18 @@
-"""Механика дерева меню: реестр узлов, сборка клавиатур, единственная точка вывода.
+"""Menu tree mechanics: node registry, keyboard assembly, one output point.
 
-Зачем реестр. Раньше цена нового раздела на три уровня — три клавиатуры, три
-обработчика, три захардкоженных литерала «назад» и правки в двух местах
-онбординга. Забытый литерал не ломает тесты: кнопка просто уводит не туда.
-Здесь родитель объявлен один раз в узле, и «назад» строится из него — ошибиться
-негде.
+Why a registry. The old price of a new three-level section was three keyboards,
+three handlers, three hardcoded "back" literals and edits in two places in
+onboarding. A forgotten literal breaks no test: the button simply leads
+somewhere else. Here the parent is declared once on the node and "back" is
+derived from it — there is nothing left to get wrong.
 
-Второе, ради чего это затевалось: по реестру можно **пройтись**. Тест обходит
-дерево целиком и проверяет узлы, которых на момент написания теста ещё не было.
+The second reason: a registry can be **walked**. A test traverses the whole tree
+and covers nodes that did not exist when the test was written.
 
-Стек навигации в состоянии отвергнут: `MemoryStorage` не переживает перезапуск
-контейнера, а инлайновые кнопки живут в истории чата вечно — человек нажмёт
-прошлогоднюю, и стек ей ничем не поможет. Поэтому «назад» — свойство дерева, а
-не истории.
+A navigation stack in FSM state was rejected: `MemoryStorage` does not survive a
+container restart, and inline buttons live in chat history forever — someone
+will press last year's, and a stack will not help them. So "back" is a property
+of the tree, not of history.
 """
 
 from __future__ import annotations
@@ -27,16 +27,16 @@ from aiogram.types import (CallbackQuery, InlineKeyboardButton, InlineKeyboardMa
 
 from ..render import split
 
-# Префикс всех кнопок дерева. Один символ — в 64 байта callback_data и так тесно.
+# Prefix of every tree button. One character — 64 bytes of callback_data is tight enough.
 PREFIX = "m"
-ROOT = ""  # условный корень: его «экран» — обычная клавиатура снизу
+ROOT = ""  # notional root: its "screen" is the reply keyboard at the bottom
 
 Row = list[InlineKeyboardButton]
 
 
 @dataclass
 class Ctx:
-    """Всё, что нужно рендереру. Собирается роутером на каждое нажатие."""
+    """Everything a renderer needs. Built by the router on every press."""
 
     cfg: object
     user: object
@@ -46,7 +46,7 @@ class Ctx:
     student: object | None = None
     demo: object | None = None
     bot: object | None = None
-    state: object | None = None   # FSM: узлам, начинающим диалог
+    state: object | None = None   # FSM, for nodes that start a dialogue
 
     @property
     def is_admin(self) -> bool:
@@ -55,20 +55,20 @@ class Ctx:
 
 @dataclass
 class Screen:
-    """Что показать. Рендерер не знает ни про «назад», ни про отправку."""
+    """What to show. The renderer knows nothing about "back" or about sending."""
 
     text: str = ""
     rows: list[Row] = field(default_factory=list)
     docs: list[tuple[str, Path, str]] = field(default_factory=list)
-    blobs: list[tuple[str, bytes, str]] = field(default_factory=list)  # подпись, файл, имя
+    blobs: list[tuple[str, bytes, str]] = field(default_factory=list)  # caption, bytes, filename
     alert: str | None = None
-    back: str | None = None          # переопределить «назад» у параметрического узла
+    back: str | None = None          # override "back" for a parametric node
     keep_parent: bool = True
-    preview: bool = False            # разворачивать ли ссылки в тексте
+    preview: bool = False            # whether to expand links in the text
 
 
 Renderer = Callable[[Ctx], Awaitable[Screen]]
-Kids = Callable[[Ctx], Sequence[tuple[str, str, str]]]  # (подпись, узел, аргумент)
+Kids = Callable[[Ctx], Sequence[tuple[str, str, str]]]  # (label, node, argument)
 
 
 def PUBLIC(ctx: Ctx) -> bool:
@@ -88,8 +88,8 @@ class Node:
     kids: tuple[str, ...] | Kids = ()
     visible: Callable[[Ctx], bool] = PUBLIC
     needs_student: bool = False
-    label: str = ""           # подпись кнопки, если отличается от заголовка экрана
-    order: int = 0            # порядок среди соседей; иначе им правит порядок импорта
+    label: str = ""           # button caption when it differs from the screen title
+    order: int = 0            # order among siblings; otherwise import order decides
 
     @property
     def button(self) -> str:
@@ -102,11 +102,11 @@ NODES: dict[str, Node] = {}
 def node(id: str, title: str, parent: str | None = ROOT, *,
          kids: tuple[str, ...] | Kids = (), visible=PUBLIC,
          needs_student: bool = False, label: str = "", order: int = 0):
-    """Объявить узел. Рендерер пишется тут же — иначе они разъезжаются."""
+    """Declare a node. The renderer is written right here — otherwise they drift apart."""
 
     def wrap(render: Renderer) -> Renderer:
         if id in NODES:
-            msg = f"узел {id!r} объявлен дважды"
+            msg = f"node {id!r} declared twice"
             raise ValueError(msg)
         NODES[id] = Node(id, title, parent, render, kids, visible, needs_student,
                          label, order)
@@ -117,29 +117,29 @@ def node(id: str, title: str, parent: str | None = ROOT, *,
 
 # --- callback_data -------------------------------------------------------------
 
-LIMIT = 64  # жёсткое ограничение телеграма, в байтах
+LIMIT = 64  # Telegram's hard limit, in bytes
 
 
 def cb(node_id: str, arg: str = "") -> str:
-    """Единственное место сборки callback_data во всём боте."""
+    """The only place callback_data is assembled in the whole bot."""
     data = f"{PREFIX}:{node_id}:{arg}"
     if len(data.encode()) > LIMIT:
-        # Молча обрезать нельзя: кнопка станет вести не туда, и заметить это
-        # можно будет только по жалобе студента.
-        msg = f"callback_data длиннее {LIMIT} байт: {data!r}"
+        # Truncating silently is not an option: the button would lead somewhere
+        # else, and the only way to notice would be a student complaining.
+        msg = f"callback_data longer than {LIMIT} bytes: {data!r}"
         raise ValueError(msg)
     return data
 
 
 def parse(data: str) -> tuple[str, str] | None:
-    """Разобрать нажатие. Аргумент может содержать двоеточия — режем на три."""
+    """Parse a press. The argument may contain colons — split into three."""
     parts = data.split(":", 2)
     if len(parts) != 3 or parts[0] != PREFIX:
         return None
     return parts[1], parts[2]
 
 
-# --- клавиатуры ----------------------------------------------------------------
+# --- keyboards -----------------------------------------------------------------
 
 def children(n: Node, ctx: Ctx) -> list[tuple[str, str, str]]:
     if callable(n.kids):
@@ -153,7 +153,7 @@ def children(n: Node, ctx: Ctx) -> list[tuple[str, str, str]]:
 
 
 def nav_row(n: Node, ctx: Ctx, back: str | None) -> Row:
-    """Кнопка «назад». Подпись — заголовок родителя, чтобы было видно куда."""
+    """The "back" button. Its caption is the parent's title, so you see where it goes."""
     if back:
         parent_title = ""
         parsed = parse(back)
@@ -177,7 +177,7 @@ def keyboard(n: Node, ctx: Ctx, screen: Screen) -> InlineKeyboardMarkup | None:
 
 
 def paginate(node_id: str, arg_prefix: str, index: int, total: int) -> Row:
-    """◀ 3/7 ▶ — обобщение пагинатора из карточки замечания."""
+    """◀ 3/7 ▶ — the finding-card paginator, generalised."""
     row: Row = []
     if index > 0:
         row.append(InlineKeyboardButton(
@@ -194,25 +194,25 @@ def links_rows(links: Iterable[tuple[str, str]], limit: int = 4) -> list[Row]:
             for title, url in list(links)[:limit] if url.startswith("http")]
 
 
-# --- корень: обычная клавиатура снизу -------------------------------------------
+# --- root: the reply keyboard at the bottom -------------------------------------
 
 def roots(ctx: Ctx) -> list[Node]:
-    """Порядок задаётся полем `order`, а не тем, какой модуль импортировался первым."""
+    """Order comes from the `order` field, not from which module was imported first."""
     return sorted((n for n in NODES.values() if n.parent == ROOT and n.visible(ctx)),
                   key=lambda n: (n.order, n.id))
 
 
 def root_labels(ctx: Ctx | None = None) -> tuple[str, ...]:
-    """Подписи корневых кнопок — для онбординга, который обязан их пропускать."""
+    """Captions of the root buttons — for onboarding, which must let them through."""
     return tuple(n.button for n in NODES.values() if n.parent == ROOT)
 
 
 def root_keyboard(ctx: Ctx, placeholder: str = "Выбери раздел") -> ReplyKeyboardMarkup:
-    """Строится из детей корня по `visible` — отдельного списка для гостя нет.
+    """Built from the root's children by `visible` — no separate list for guests.
 
-    Раньше их было три: `main_menu`, `guest_menu`, `admin_guest_menu`. Они
-    расходились, и гостю показывали кнопку, которая ему отвечала «сначала
-    привяжись».
+    There used to be three: `main_menu`, `guest_menu`, `admin_guest_menu`. They
+    drifted apart, and a guest was shown a button that answered them "bind
+    first".
     """
     labels = [n.button for n in roots(ctx)]
     rows = [[KeyboardButton(text=label) for label in labels[i:i + 2]]
@@ -222,7 +222,7 @@ def root_keyboard(ctx: Ctx, placeholder: str = "Выбери раздел") -> R
 
 
 def keyboard_for(cfg, user, student=None, placeholder: str = "Выбери раздел"):
-    """Корневая клавиатура там, где контекста узла ещё нет: онбординг, админка."""
+    """The root keyboard where there is no node context yet: onboarding, admin panel."""
     return root_keyboard(Ctx(cfg=cfg, user=user, student=student), placeholder)
 
 
@@ -230,22 +230,23 @@ def by_label(label: str) -> Node | None:
     return next((n for n in NODES.values() if n.parent == ROOT and n.button == label), None)
 
 
-# --- единственная точка вывода --------------------------------------------------
+# --- the single output point ------------------------------------------------------
 
 async def show_screen(event, screen: Screen, ctx: Ctx, node_id: str) -> None:
-    """Показать готовый экран от имени узла.
+    """Show a ready screen on behalf of a node.
 
-    Нужно там, где ответ пришёл сообщением, а не нажатием: рендерер уже
-    отработал, а нарезка, клавиатура и «назад» должны остаться теми же.
+    Needed where the answer arrived as a message rather than a press: the
+    renderer has already run, but splitting, keyboard and "back" must stay the
+    same.
     """
     await _emit(event, NODES[node_id], ctx, screen)
 
 
 async def show(event: Message | CallbackQuery, n: Node, ctx: Ctx) -> None:
-    """Отрисовать узел. Всё, что бот показывает деревом, проходит здесь.
+    """Render a node. Everything the bot shows through the tree passes here.
 
-    Одна точка — чтобы длинный текст резался, «назад» добавлялось и события
-    писались одинаково везде, а не как получилось в каждом обработчике.
+    One point, so that long text gets split, "back" gets added and events get
+    logged the same way everywhere instead of however each handler happened to.
     """
     if not n.visible(ctx):
         await _quiet(event)
@@ -276,8 +277,8 @@ async def _emit(event, n: Node, ctx: Ctx, screen: Screen) -> None:
                 reply_markup=markup if len(chunks) == 1 else None)
             first_sent = True
         except TelegramBadRequest:
-            # Сообщение могло быть документом или не измениться ни на символ.
-            # Ошибка прав из предохранителя сюда не попадает — она не отсюда.
+            # The message may have been a document, or unchanged to the character.
+            # A permission error from the safety catch does not land here — wrong source.
             first_sent = False
 
     start = 1 if first_sent else 0

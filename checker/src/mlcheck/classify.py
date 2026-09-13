@@ -1,11 +1,12 @@
-"""Определение темы домашки по содержимому ноутбука.
+"""Deciding a homework's topic from the notebook's content.
 
-Имя папки ненадёжно: встречается `hw04 (LOG REGRESSION)` с линейной регрессией
-внутри и `hwXX_` без темы вообще. Поэтому решает содержимое, а путь — лишь
-слабая подсказка.
+A folder name is unreliable: there is an `hw04 (LOG REGRESSION)` holding linear
+regression, and `hwXX_` with no topic at all. So content decides and the path is
+only a weak hint.
 
-Классификация многометочная: задание по случайному лесу прямо просит дополнить
-ноутбук из домашки про линейную регрессию, так что один файл закрывает две темы.
+Classification is multi-label: the random-forest assignment explicitly asks
+students to extend their linear-regression notebook, so one file closes two
+topics.
 """
 
 from __future__ import annotations
@@ -16,14 +17,15 @@ from dataclasses import dataclass
 from .nbio import Notebook
 from .rubric import Rubric
 
-# Веса подобраны так, чтобы одного сильного маркера хватало для уверенного
-# попадания, а совпадения только по имени файла — нет.
+# Weights are chosen so one strong marker is enough for a confident match, while
+# a filename match alone is not.
 W_STRONG = 2.0
 W_WEAK = 1.0
 W_FILENAME = 0.6
-# Путь — заявка студента о теме, поэтому для совпавших по имени порог ниже.
-# Для остальных нужен и сильный маркер, и заметно более высокий балл: иначе
-# EDA-часть чужой домашки засчитывалась бы как отдельная домашка по EDA.
+# The path is the student's own claim about the topic, so the threshold is lower
+# for filename matches. The rest need both a strong marker and a noticeably
+# higher score: otherwise the EDA part of another homework would count as a
+# separate EDA submission.
 MIN_SCORE_NAMED = 0.9
 MIN_SCORE_UNNAMED = 1.6
 
@@ -45,9 +47,9 @@ class Match:
 
 def score_notebook(nb: Notebook, rubric: Rubric) -> Match:
     haystack = nb.source_text
-    # Расширение отбрасываем: иначе подсказка вроде «nb» совпадала бы с «.ipynb»
-    # у каждого файла и раздавала ложную уверенность.
-    # Разделители приводим к одному виду: «log-reg» и «log_reg» — одно и то же.
+    # The extension is dropped: otherwise a hint like "nb" would match ".ipynb"
+    # on every file and hand out false confidence.
+    # Separators are normalised: "log-reg" and "log_reg" are the same thing.
     lowpath = re.sub(r"\.ipynb$", "", nb.rel.lower())
     lowpath = re.sub(r"[\s\-.]+", "_", lowpath)
     sig = rubric.signature
@@ -67,7 +69,7 @@ def score_notebook(nb: Notebook, rubric: Rubric) -> Match:
 
 
 def classify(nb: Notebook, rubrics: dict[str, Rubric]) -> list[Match]:
-    """Все темы, которым ноутбук соответствует, по убыванию уверенности."""
+    """Every topic the notebook matches, most confident first."""
     if not nb.ok:
         return []
     matches = [score_notebook(nb, r) for r in rubrics.values()]
@@ -76,7 +78,7 @@ def classify(nb: Notebook, rubrics: dict[str, Rubric]) -> list[Match]:
 
 
 def _own_cells(nb: Notebook, template_name: str | None) -> int:
-    """Сколько ячеек написал сам студент (без раздаточной заготовки)."""
+    """How many cells the student wrote themselves (excluding the handout template)."""
     from .templates import template_cell_bodies
 
     tpl = template_cell_bodies(template_name)
@@ -86,7 +88,7 @@ def _own_cells(nb: Notebook, template_name: str | None) -> int:
 
 
 def _completeness(nb: Notebook) -> tuple[int, int, int]:
-    """Чем полнее работа, тем выше приоритет при выборе среди дублей."""
+    """The fuller the work, the higher its priority when choosing among duplicates."""
     executed = sum(1 for c in nb.code_cells if c.executed)
     nonempty = len(nb.nonempty_code_cells)
     return (nonempty, executed, len(nb.markdown_text))
@@ -98,13 +100,13 @@ class Submission:
     notebook: Notebook
     score: float
     strong_hits: list[str]
-    alternatives: list[str] = None   # прочие ноутбуки, подошедшие под ту же тему
-    by_folder: bool = False          # принят только по номеру папки, см. folder_topic
+    alternatives: list[str] = None   # other notebooks that matched the same topic
+    by_folder: bool = False          # accepted by folder number alone, see folder_topic
 
 
-# Номер темы в имени КАТАЛОГА: «hw02/», «hw_03 (KNN)/», «HW07_tree/». Имя файла
-# не смотрим: «hw04 (LOG REGRESSION)» совпадал бы и с hw04, и с hw05 по подсказкам,
-# а номер каталога однозначен.
+# The topic number in the DIRECTORY name: "hw02/", "hw_03 (KNN)/", "HW07_tree/".
+# The file name is ignored: "hw04 (LOG REGRESSION)" would match both hw04 and
+# hw05 by hints, while the directory number is unambiguous.
 _HW_DIR = re.compile(r"(?:^|/)hw[_\s-]?0?(\d{1,2})[^/]*/", re.I)
 
 
@@ -119,10 +121,10 @@ def folder_topic(rel: str, rubrics: dict[str, Rubric]) -> str | None:
 def pick_submissions(
     notebooks: list[Notebook], rubrics: dict[str, Rubric]
 ) -> tuple[dict[str, Submission], list[Notebook]]:
-    """Среди нескольких кандидатов на тему выигрывает тот, где больше своей работы.
+    """Among several candidates for a topic, the one with more own work wins.
 
-    Иначе раздаточный ноутбук лекции (в нём ячеек больше, но они не студента)
-    вытесняет настоящую домашку, лежащую в той же папке.
+    Otherwise the lecture handout notebook (more cells, but not the student's)
+    displaces the real homework sitting in the same folder.
     """
     """По одной лучшей работе на тему. Возвращает также неопознанные ноутбуки."""
     by_hw: dict[str, list[tuple[Match, Notebook]]] = {}
@@ -138,16 +140,16 @@ def pick_submissions(
 
     chosen: dict[str, Submission] = {}
     for hw, pairs in by_hw.items():
-        # Если студент положил работу в папку с названием темы — это его прямая
-        # заявка, и она важнее того, что чужой ноутбук содержит больше кода.
+        # If the student put the work in a folder named after the topic, that is
+        # their direct claim, and it outweighs another notebook having more code.
         template = rubrics[hw].template_name
 
         def rank(pr):
             nb = pr[1]
             own = _own_cells(nb, template)
             share = own / max(len(nb.cells), 1)
-            # Ноутбук, который больше чем наполовину состоит из раздатки, —
-            # это копия заготовки с лекции, а не сданная домашка.
+            # A notebook more than half of which is handout material is a copy of
+            # the lecture template, not submitted homework.
             return (pr[0].filename_hit, share >= 0.5, own, _completeness(nb), pr[0].score)
 
         pairs.sort(key=rank, reverse=True)
@@ -160,12 +162,12 @@ def pick_submissions(
             alternatives=[nb.rel for _, nb in pairs[1:]],
         )
 
-    # Второй проход — по папке. Ноутбук, который по содержимому ни на что не
-    # похож, но лежит в «hw02/», а другой сдачи по hw02 у студента нет, — это
-    # его заявка на тему: пустая или брошенная на середине, но заявка. Без этого
-    # такая работа числилась «не сдано», хотя файл есть. Содержательные сдачи
-    # правило не трогает: заполняются только пустые темы, порог `accepted` не
-    # меняется, поэтому вердикт хуже стать не может.
+    # Second pass, by folder. A notebook that matches nothing by content but sits
+    # in "hw02/" while the student has no other hw02 submission is their claim on
+    # that topic: empty or abandoned halfway, but a claim. Without this such work
+    # counted as "not submitted" although the file exists. Substantive submissions
+    # are untouched: only empty topics are filled, the `accepted` threshold does
+    # not move, so no verdict can get worse.
     by_folder: dict[str, list[Notebook]] = {}
     for nb in unmatched:
         hw = folder_topic(nb.rel, rubrics)

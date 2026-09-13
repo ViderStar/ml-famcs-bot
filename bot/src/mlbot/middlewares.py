@@ -1,4 +1,4 @@
-"""Троттлинг, память об аккаунте и подмена курса в демо-режиме."""
+"""Throttling, account memory and course substitution in demo mode."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from aiogram.types import CallbackQuery, Message, TelegramObject
 
 
 class Throttle(BaseMiddleware):
-    """Не даёт заспамить бота: одно действие в `interval` секунд на пользователя."""
+    """Keeps the bot from being spammed: one action per `interval` seconds per user."""
 
     def __init__(self, interval: float = 0.4) -> None:
         self.interval = interval
@@ -38,15 +38,15 @@ class Throttle(BaseMiddleware):
 
 
 class DemoCourse(BaseMiddleware):
-    """Подменяет курс, когда админ смотрит глазами вымышленного студента.
+    """Substitutes the course when an admin looks through a fictional student's eyes.
 
-    Демо живёт в отдельном каталоге и своём объекте `Course`, а не подмешивается
-    к настоящим 205: иначе оно поехало бы в медиану, перцентиль и число
-    сертификатов, и заметить это было бы нечем.
+    Demo lives in its own directory and its own `Course` object instead of being
+    mixed into the real corpus: otherwise it would seep into the median, the
+    percentile and the certificate count, with nothing to notice it by.
 
-    Подмена делается здесь, а не в обработчиках: `deps._resolve` уже смотрит в
-    `test_views`, поэтому достаточно положить в данные другой курс — и **ни один
-    обработчик не меняется**.
+    The substitution happens here rather than in handlers: `deps._resolve`
+    already consults `test_views`, so putting a different course into the data is
+    enough — and **no handler changes**.
     """
 
     def __init__(self, demo) -> None:
@@ -69,15 +69,15 @@ class DemoCourse(BaseMiddleware):
 
 
 class Identity(BaseMiddleware):
-    """Помнит аккаунт и записывает смену username.
+    """Remembers the account and records username changes.
 
-    Username — атрибут, а не ключ: он освобождается и достаётся другому
-    человеку, и во втором сезоне именно на этом посторонний аккаунт открыл
-    чужой разбор. Журнал нужен, чтобы такую смену было видно, а не
-    восстанавливать по памяти.
+    A username is an attribute, not a key: it gets released and goes to someone
+    else, and in season 2 that is exactly how an outsider opened another
+    student's review. The log exists so such a change is visible instead of
+    reconstructed from memory.
 
-    В базу пишем только при изменении: иначе на каждое нажатие кнопки
-    приходился бы `UPDATE`.
+    The database is written only on change: otherwise every button press would
+    cost an `UPDATE`.
     """
 
     def __init__(self) -> None:

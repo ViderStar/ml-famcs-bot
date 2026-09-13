@@ -1,8 +1,8 @@
-"""Отправка рассылки: одна функция доставки, возобновляемый цикл.
+"""Sending a broadcast: one delivery function, a resumable loop.
 
-Предпросмотр и настоящая отправка идут через `deliver` — иначе «так будет
-выглядеть» и «так выглядит» разъезжаются. Побочная польза: битая HTML-разметка
-падает на администраторе, ещё до появления кнопки подтверждения.
+Preview and real sending both go through `deliver` — otherwise "this is how it
+will look" and "this is how it looks" drift apart. Side benefit: broken HTML
+fails on the admin, before the confirm button ever appears.
 """
 
 from __future__ import annotations
@@ -15,15 +15,15 @@ from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 
 log = logging.getLogger("broadcast")
 
-# Пауза между отправками. Телеграм разрешает ~30 сообщений в секунду, но
-# спешить некуда, а на пределе он начинает просить подождать.
+# Pause between sends. Telegram allows about 30 messages a second, but there is
+# no hurry, and at the limit it starts asking us to wait.
 PAUSE = 0.05
-# Как часто править сообщение с прогрессом. Чаще нельзя: правка — тоже вызов API.
+# How often to edit the progress message. No faster: an edit is an API call too.
 PROGRESS_EVERY = 3.0
 
 
 async def guard(factory):
-    """Повтор при «подожди столько-то секунд». Вынесено из `announce.py`."""
+    """Retry on "wait N seconds". Extracted from `announce.py`."""
     while True:
         try:
             return await factory()
@@ -32,7 +32,7 @@ async def guard(factory):
 
 
 async def deliver(bot: Bot, chat_id: int, draft: dict):
-    """Доставить одно письмо. Единственный способ отправить рассылку."""
+    """Deliver one letter. The only way a broadcast is sent."""
     if draft["kind"] == "copy" and draft.get("src_chat"):
         return await guard(lambda: bot.copy_message(
             chat_id=chat_id, from_chat_id=draft["src_chat"],
@@ -42,7 +42,7 @@ async def deliver(bot: Bot, chat_id: int, draft: dict):
 
 
 async def run(bot: Bot, store, cast_id: int, on_progress=None) -> dict[str, int]:
-    """Разослать остаток. Безопасно вызывать повторно после обрыва."""
+    """Send the remainder. Safe to call again after an interruption."""
     draft = await store.broadcast(cast_id)
     if draft is None:
         return {}
@@ -55,13 +55,13 @@ async def run(bot: Bot, store, cast_id: int, on_progress=None) -> dict[str, int]
             try:
                 await deliver(bot, target["tg_id"], draft)
             except TelegramForbiddenError:
-                # Заблокировал бота или удалил аккаунт. Повторять бессмысленно,
-                # поэтому в «ожидании» такой адресат не остаётся.
+                # Blocked the bot or deleted the account. Retrying is pointless,
+                # so this recipient does not stay in "pending".
                 await store.mark_target(cast_id, target["tg_id"], "blocked")
             except Exception as exc:
                 await store.mark_target(cast_id, target["tg_id"], "failed",
                                         f"{type(exc).__name__}: {exc}"[:300])
-                log.warning("рассылка %s → %s: %s", cast_id, target["tg_id"], exc)
+                log.warning("broadcast %s → %s: %s", cast_id, target["tg_id"], exc)
             else:
                 await store.mark_target(cast_id, target["tg_id"], "sent")
             await asyncio.sleep(PAUSE)

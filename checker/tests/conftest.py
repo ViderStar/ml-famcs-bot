@@ -1,11 +1,10 @@
 import json
-from pathlib import Path
 
 import pytest
 
 
 def make_nb(cells, nbformat=4):
-    """Собирает ноутбук из компактного описания [(kind, source, ec, outputs)]."""
+    """Builds a notebook from a compact description [(kind, source, ec, outputs)]."""
     out = []
     for c in cells:
         kind, source = c[0], c[1]

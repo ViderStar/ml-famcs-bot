@@ -1,8 +1,9 @@
-"""Выкачка репозиториев участников.
+"""Fetching participants' repositories.
 
-Клонируем поверхностно (--depth 1) и без крупных блобов: нужны только ноутбуки
-и мелкие текстовые файлы, а датасеты и картинки в репозиториях весят гигабайты.
-Повторный запуск не перекачивает то, что уже лежит с тем же pushed_at.
+Cloned shallow (--depth 1) and without large blobs: only notebooks and small
+text files are needed, while datasets and images in these repositories run to
+gigabytes. A rerun does not refetch anything already there with the same
+pushed_at.
 """
 
 from __future__ import annotations
@@ -17,8 +18,8 @@ from pathlib import Path
 from .config import Config, load
 from .roster import Student
 
-# Блобы крупнее этого не выкачиваем: самый большой ноутбук курса ~3.4 МБ,
-# всё что тяжелее — датасеты, архивы и картинки.
+# Blobs larger than this are skipped: the biggest course notebook is ~3.4 MB;
+# anything heavier is datasets, archives and images.
 BLOB_LIMIT = "8m"
 
 

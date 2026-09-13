@@ -1,8 +1,9 @@
-"""Эталонные ноутбуки-заготовки из materials/.
+"""Reference handout notebooks from materials/.
 
-Нужны, чтобы отличать работу студента от того, что ему раздали. Например,
-`pca_practice_student.ipynb` сам масштабирует весь датасет до train/test split —
-это утечка, но она в раздаточном материале, и студенту её вменять нельзя.
+Needed to tell the student's work from what they were given. For example,
+`pca_practice_student.ipynb` scales the whole dataset before the train/test
+split — that is leakage, but it lives in the handout and cannot be charged to
+the student.
 """
 
 from __future__ import annotations
@@ -32,7 +33,7 @@ def load_template(name: str, cfg: Config | None = None) -> Notebook | None:
 
 @lru_cache(maxsize=32)
 def template_lines(name: str | None) -> frozenset[str]:
-    """Нормализованные строки кода эталона — для вычитания из работы студента."""
+    """Normalised template code lines — to subtract from the student's work."""
     if not name:
         return frozenset()
     nb = load_template(name)
@@ -49,7 +50,7 @@ def template_lines(name: str | None) -> frozenset[str]:
 
 @lru_cache(maxsize=32)
 def template_cell_bodies(name: str | None) -> frozenset[str]:
-    """Тела ячеек эталона — чтобы вычесть их при поиске заимствований."""
+    """Template cell bodies — to subtract when looking for copied work."""
     if not name:
         return frozenset()
     nb = load_template(name)
@@ -62,10 +63,10 @@ def template_cell_bodies(name: str | None) -> frozenset[str]:
 
 @lru_cache(maxsize=32)
 def template_markdown(name: str | None) -> frozenset[str]:
-    """Нормализованные markdown-ячейки эталона.
+    """Normalised template markdown cells.
 
-    Нужны, чтобы отличить собственные выводы студента от текста заготовки:
-    иначе работа без единого своего слова выглядит как хорошо документированная.
+    Needed to tell the student's own conclusions from the template prose:
+    otherwise work without a single word of their own looks well documented.
     """
     if not name:
         return frozenset()
@@ -81,7 +82,7 @@ def template_markdown(name: str | None) -> frozenset[str]:
 
 @lru_cache(maxsize=32)
 def union_cell_bodies(names: tuple[str, ...]) -> frozenset[str]:
-    """Ячейки всех раздаточных ноутбуков темы разом."""
+    """Cells from every handout notebook of a topic at once."""
     out: set[str] = set()
     for name in names:
         out |= template_cell_bodies(name)

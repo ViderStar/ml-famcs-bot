@@ -1,9 +1,9 @@
-"""Сборка вердикта и отчётов.
+"""Building the verdict and the reports.
 
-`out/findings/<key>.json` — контракт для телеграм-бота: по каждой домашке
-статус, список находок с кодами и персональными комментариями, итог по
-сертификату. Пояснительные тексты бот берёт из `catalog/` по коду находки,
-чтобы правки в каталоге не требовали пересборки отчётов.
+`out/findings/<key>.json` is the contract with the Telegram bot: per homework a
+status, a list of findings with codes and personal comments, and the certificate
+outcome. Explanatory text comes from `catalog/` by finding code, so catalog edits
+do not require rebuilding the reports.
 """
 
 from __future__ import annotations
@@ -54,13 +54,13 @@ class StudentReport:
     reason: str = ""
     homeworks: dict[str, HwReport] = field(default_factory=dict)
     similarity: list[dict] = field(default_factory=list)
-    portrait: dict | None = None      # портрет за курс, режим llm student
+    portrait: dict | None = None      # the course portrait, llm student mode
 
     graded_ids: frozenset[str] = frozenset()
 
     @property
     def passed_count(self) -> int:
-        """Засчитанные темы, учитываемые в сертификате."""
+        """Passed topics that count towards the certificate."""
         return sum(
             1 for hw, h in self.homeworks.items()
             if h.status == PASSED and (not self.graded_ids or hw in self.graded_ids)
@@ -84,7 +84,7 @@ def _finding_dict(f: Finding, catalog: dict[str, Article], comment: str = "") ->
 
 def _apply_llm(res: HwResult, rubric: Rubric, payload: dict,
                catalog: dict[str, Article]) -> tuple[list[dict], str, str]:
-    """Учитывает вердикт модели по смысловым пунктам и её находки."""
+    """Takes in the model's verdict on judgement items and its findings."""
     extra: list[dict] = []
     by_id = {c["id"]: c for c in payload.get("checks", [])}
 
@@ -93,7 +93,7 @@ def _apply_llm(res: HwResult, rubric: Rubric, payload: dict,
         if verdict is None or verdict.get("passed", True):
             continue
         if check.required:
-            res.passed_required -= 1        # статика считала пункт закрытым авансом
+            res.passed_required -= 1        # the static pass had counted the item closed in advance
         code = f"{rubric.id}.{check.id}"
         art = catalog.get(code)
         extra.append({
@@ -116,7 +116,7 @@ def _apply_llm(res: HwResult, rubric: Rubric, payload: dict,
         seen.add(code)
         art = catalog.get(code)
         if art is None:
-            # Код `other` — модель нашла что-то за пределами каталога.
+            # The `other` code: the model found something outside the catalog.
             extra.append({
                 "code": f"{rubric.id}.other", "severity": "minor",
                 "title": "Замечание вне каталога", "detail": "",
@@ -126,12 +126,12 @@ def _apply_llm(res: HwResult, rubric: Rubric, payload: dict,
             continue
         severity, comment = art.severity, item.get("comment", "")
         if art.detector == "rule" and severity == "critical":
-            # Коды с детерминированным детектором («падает с ошибкой», «имя не
-            # определено», «обучено на тесте») правило уже проверило и не нашло.
-            # Модель видит только дописанное студентом и без раздатки ошибается:
-            # в перепрогоне v2 такие находки стоили одиннадцати незачётов и одного
-            # сертификата, и оба проверенных вручную случая оказались ложными.
-            # Оставляем как серьёзное замечание, но зачёт им не закрываем.
+                    # Codes with a deterministic detector were already checked by
+                    # the rule and not found. The model sees only what the student
+                    # added and gets it wrong without the handout: in the v2 rerun
+                    # such findings cost eleven failures and one certificate, and
+                    # both cases checked by hand turned out to be false. Kept as a
+                    # major finding, never used to fail a topic.
             severity = "major"
             comment = "(по мнению проверяющей модели; автоматическое правило этого " \
                       "не подтвердило) " + comment
@@ -171,8 +171,8 @@ def build_student(work: StudentWork, rubrics: dict[str, Rubric],
             findings.extend(f for f in extra if f["code"] not in known)
 
         has_critical = any(f["severity"] == str(Severity.CRITICAL) for f in findings)
-        # Нет обязательных пунктов — заваливать не за что (так у hw01 и hw07,
-        # где раздаточный ноутбук был уже решён).
+    # No required items means nothing to fail on (as with hw01 and hw07, where
+    # the handout notebook came already solved).
         ratio = res.passed_required / res.total_required if res.total_required else 1.0
         status = PASSED if (not has_critical and ratio >= threshold) else FAILED
 
@@ -206,13 +206,13 @@ def load_similarity(cfg: Config) -> dict[str, list[dict]]:
 
 
 def required_passed_for(ratio: float, total_hw: int) -> int:
-    """Сколько домашек нужно при заданной доле.
+    """How many homework are needed at a given ratio.
 
-    Округляем вниз — в пользу студентов. При пороге 66% от 12 тем выходит 7.92,
-    и требовать восемь было бы натяжкой: разница между «двумя третями» и «ровно
-    восемью из двенадцати» — это десять живых человек.
+    Rounded down, in the students' favour. At a 66% threshold over 12 topics the
+    result is 7.92, and demanding eight would be a stretch: the difference between
+    "two thirds" and "exactly eight of twelve" is ten real people.
 
-    Вынесено отдельной чистой функцией, потому что ту же цифру показывает бот.
+    A separate pure function because the bot shows the same number.
     """
     import math
 
@@ -220,11 +220,12 @@ def required_passed_for(ratio: float, total_hw: int) -> int:
 
 
 def points_needed_for(ratio: float, total: int) -> int:
-    """Сколько пунктов задания нужно закрыть при данной доле.
+    """How many assignment items must be closed at a given ratio.
 
-    Проверка сравнивает долю с порогом; это та же граница в пунктах. Поправка
-    1e-9 — страховка от двоичного округления на ровной границе (0.28 × 25 даёт
-    7.000000000000001). Ту же цифру показывает бот — формула одна.
+    The grader compares a ratio with the threshold; this is the same boundary in
+    items. The 1e-9 nudge guards against binary rounding right on the boundary
+    (0.28 x 25 gives 7.000000000000001). The bot shows the same number — one
+    formula.
     """
     import math
 
@@ -239,7 +240,7 @@ def certificate(rep: StudentReport, total_hw: int, cfg: Config) -> bool:
     return rep.passed_count >= required_passed(total_hw, cfg)
 
 
-# --- вывод ------------------------------------------------------------------------
+# --- output ---------------------------------------------------------------------------
 
 def to_json(rep: StudentReport, total_hw: int, cfg: Config) -> dict:
     return {
@@ -285,8 +286,8 @@ def to_markdown(rep: StudentReport, total_hw: int, cfg: Config) -> str:
         "",
     ]
     if rep.portrait:
-        # Портрет за курс — то же, что видит студент в боте: чтобы преподаватель
-        # читал ровно тот текст, который получил человек.
+        # The course portrait is what the student sees in the bot: so the teacher
+        # reads exactly the text the person received.
         lines += ["## Портрет за курс", "", rep.portrait["portrait"], ""]
         if rep.portrait.get("growth"):
             lines += ["**Что подтянуть:**", ""]
@@ -323,7 +324,7 @@ def to_markdown(rep: StudentReport, total_hw: int, cfg: Config) -> str:
                 lines.append(f"`{f['detail']}`")
             if f["comment"]:
                 lines.append(f["comment"])
-            # Локальные пути к заданиям студенту не откроются — только внешние ссылки.
+            # Local assignment paths will not open for a student — external links only.
             external = [(t, u) for t, u in f["links"] if u.startswith("http")]
             if external:
                 lines.append("Почитать: " + ", ".join(f"[{t}]({u})" for t, u in external))
@@ -371,7 +372,7 @@ def build_all(cfg: Config | None = None) -> list[StudentReport]:
 
 
 def _typical_errors(reports: list[StudentReport], cfg: Config) -> str:
-    """Свод типовых ошибок по потоку — что разбирать на занятии в первую очередь."""
+    """A stream-wide summary of common mistakes — what to cover in class first."""
     from collections import Counter
 
     from .rubric import load_all as load_rubrics
@@ -413,10 +414,10 @@ def _typical_errors(reports: list[StudentReport], cfg: Config) -> str:
 
 
 def _write_certificates(reports: list[StudentReport], total_hw: int, cfg: Config) -> None:
-    """Список прошедших курс — для вручения.
+    """The list of people who passed — for the ceremony.
 
-    Собирается вместе с отчётами, а не руками: цифра меняется после каждой
-    перепроверки, и отдельный файл успел бы устареть.
+    Built together with the reports rather than by hand: the number changes after
+    every recheck, and a separate file would go stale.
     """
     need = required_passed(total_hw, cfg)
     passed = sorted((r for r in reports if r.status == "ok" and certificate(r, total_hw, cfg)),

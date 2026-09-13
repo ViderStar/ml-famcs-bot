@@ -1,3 +1,3 @@
-"""Автопроверка домашних заданий курса ML FAMCS Season 2."""
+"""Automatic homework grading for the ML FAMCS course."""
 
 __version__ = "0.1.0"

@@ -1,4 +1,4 @@
-"""Поддержка: прямая ссылка на преподавателя и приём вопроса через бота."""
+"""Support: a direct link to the teacher and taking a question through the bot."""
 
 from __future__ import annotations
 

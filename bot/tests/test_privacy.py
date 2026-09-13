@@ -1,17 +1,18 @@
-"""Чужие данные недоступны ни через кнопки, ни подменой callback.
+"""Other people's data is unreachable, by button or by forged callback.
 
-Раньше эти три проверки были грепом по исходникам: «в `keyboards.py` нет
-callback_data со словом key», «в `admin.py` у каждой функции есть `_is_admin(cfg`».
-Такая проверка охраняет не бота, а расположение файлов. Стоит вынести половину
-обработчиков в другой модуль — и она продолжит проходить, разглядывая опустевший
-файл. Молча проходящий тест хуже отсутствующего: он создаёт уверенность.
+These three checks used to grep the source: "`keyboards.py` has no callback_data
+containing the word key", "every function in `admin.py` contains `_is_admin(cfg`".
+Such a check guards the file layout, not the bot. Move half the handlers into
+another module and it keeps passing, staring at an emptied file. A silently
+passing test is worse than a missing one: it manufactures confidence.
 
-Здесь всё проверяется поведением. Стенд гоняет настоящие апдейты через настоящий
-диспетчер, обходит бота по кнопкам — так же, как это делает человек, — и смотрит,
-что получил чужой. Где именно лежит код, тесту неизвестно и безразлично.
+Everything here is checked by behaviour. The bench feeds real updates through the
+real dispatcher, walks the bot by its buttons the way a person does, and looks at
+what a stranger received. Where the code lives is unknown and irrelevant to the
+test.
 
-Каждая проверка начинается с того, что обход вообще что-то нашёл: иначе «утечек
-не обнаружено» означало бы «ничего не смотрели».
+Every check starts by asserting the traversal found anything at all: otherwise
+"no leaks detected" would mean "nothing was looked at".
 """
 
 import pytest
@@ -32,22 +33,22 @@ async def store(tmp_path):
 
 @pytest.fixture
 async def victim(course, store):
-    """Привязанный студент, чей разбор пытаются добыть."""
+    """A bound student whose review someone is trying to obtain."""
     st = next(s for s in course.active if s.submitted())
     await store.bind(VICTIM_ID, st.key, None, None)
     return st
 
 
 def _leaks(sent) -> list:
-    """Что бот реально показал: `answer()` на колбэк ничего не раскрывает."""
+    """What the bot actually showed: answering a callback reveals nothing."""
     return [s for s in sent if s.api.startswith(("Send", "Edit", "Copy", "Forward"))]
 
 
 async def test_callback_data_never_carries_a_student_key(cfg, course, store, victim):
-    """Идентификатор студента берётся только из привязки в базе.
+    """The student identifier comes only from the binding in the database.
 
-    Попади ключ в callback_data — и любой подставил бы чужой: кнопки живут в
-    истории чата, их содержимое видно и подделывается.
+    Should the key reach callback_data, anyone could substitute someone else's:
+    buttons live in chat history, their contents are visible and forgeable.
     """
     seen = set()
     for bench, start in (
@@ -56,16 +57,16 @@ async def test_callback_data_never_carries_a_student_key(cfg, course, store, vic
     ):
         seen |= (await crawl(bench, start, limit=150)).payloads
 
-    assert len(seen) > 50, "обход почти ничего не нашёл — проверять нечего"
+    assert len(seen) > 50, "the traversal found almost nothing — there is nothing to check"
     keys = {s.key for s in course.students.values() if len(s.key) >= 4}
     for data in seen:
         hit = next((k for k in keys if k in data), None)
-        assert hit is None, f"ключ студента {hit!r} уехал в кнопку {data!r}"
+        assert hit is None, f"student key {hit!r} leaked into button {data!r}"
 
 
 async def test_an_unbound_account_cannot_reach_someone_elses_report(
         cfg, course, store, victim):
-    """Посторонний жмёт все кнопки студента и не получает ни строчки чужого."""
+    """A stranger presses every student button and gets not one line of it."""
     owner = Bench(cfg, course, store, user_id=VICTIM_ID)
     payloads = sorted((await crawl(owner, limit=150)).payloads)
     assert len(payloads) > 50
@@ -77,30 +78,30 @@ async def test_an_unbound_account_cannot_reach_someone_elses_report(
         out = await stranger.press(data)
         shown = "\n".join(s.text for s in _leaks(out))
         for secret in secrets:
-            assert secret not in shown, f"{data!r} показал постороннему {secret!r}"
+            assert secret not in shown, f"{data!r} showed an outsider {secret!r}"
 
 
 async def test_a_stranger_gets_nothing_from_the_admin_buttons(cfg, course, store):
-    """Каждая кнопка админки проверяется правами — включая те, что появятся потом.
+    """Every admin button is rights-checked — including ones added later.
 
-    Проверка не знает имён обработчиков и не читает исходники: она нажимает
-    ровно то, что бот показал администратору.
+    The check knows no handler names and reads no source: it presses exactly what
+    the bot showed the admin.
     """
     admin = Bench(cfg, course, store, user_id=ADMIN_ID, username=ADMIN_NAME)
     seen_by_admin = (await crawl(admin, limit=200)).payloads
     guest = Bench(cfg, course, store, user_id=STRANGER_ID)
     seen_by_guest = (await crawl(guest, limit=200)).payloads
-    # Админское — то, чего гостю не показали. Определяется поведением, а не
-    # префиксом callback_data: префикс переживёт не всякую перестройку.
+    # "Admin" means what a guest was not shown. Decided by behaviour, not by a
+    # callback_data prefix: a prefix does not survive every restructuring.
     admin_only = sorted(seen_by_admin - seen_by_guest)
-    assert len(admin_only) >= 10, "админских кнопок не найдено — проверять нечего"
+    assert len(admin_only) >= 10, "no admin buttons found — there is nothing to check"
 
     for data in admin_only:
-        assert not _leaks(await guest.press(data)), f"{data!r} ответил постороннему"
+        assert not _leaks(await guest.press(data)), f"{data!r} answered an outsider"
 
 
 async def test_a_stranger_cannot_switch_into_tester_mode(cfg, course, store):
-    """Тестер-режим подменяет студента для всех экранов — это ключ от всех записей."""
+    """Tester mode substitutes the student on every screen — it is a key to every record."""
     stranger = Bench(cfg, course, store, user_id=STRANGER_ID)
     cert = next(s for s in course.active if s.passed)
     for text in ("/test", f"Тест {cert.fio}", "/admin", "🛠 Админка"):
@@ -109,21 +110,21 @@ async def test_a_stranger_cannot_switch_into_tester_mode(cfg, course, store):
 
 
 def test_the_student_is_resolved_only_through_a_binding():
-    """Страховка на случай нового модуля: прямой доступ к `course.students`.
+    """A guard against a new module reaching into `course.students` directly.
 
-    Глоб по всему пакету, а не по одной папке: рендереры экранов переезжают,
-    и проверка, привязанная к `handlers/*.py`, перестала бы их видеть.
+    A glob over the whole package, not one folder: screen renderers move, and a
+    check tied to `handlers/*.py` would stop seeing them.
     """
     from pathlib import Path
 
     src = Path(__file__).resolve().parents[1] / "src" / "mlbot"
-    # Кому можно: админка (ищет по ФИО), онбординг (ещё нет привязки), deps
-    # (сам и есть привязка), data и matching (владеют каталогом), announce и
-    # selfcheck (скрипты без пользователя), __main__ (считает записи в лог).
+    # Who may: the admin panel (searches by name), onboarding (no binding yet),
+    # deps (it is the binding), data and matching (they own the catalog),
+    # announce and selfcheck (scripts with no user), __main__ (counts for a log).
     allowed = {"admin.py", "start.py", "deps.py", "data.py", "matching.py",
                "announce.py", "selfcheck.py", "__main__.py",
-               # Подписывает адресатов рассылки: ключ приходит из привязки,
-               # а не из нажатия — по сути это и есть «через привязку».
+               # Labels broadcast recipients: the key comes from the binding, not
+               # from a press — which is what "through the binding" means.
                "audiences.py"}
     checked = 0
     for path in sorted(src.rglob("*.py")):
@@ -131,4 +132,4 @@ def test_the_student_is_resolved_only_through_a_binding():
             continue
         checked += 1
         assert "course.students" not in path.read_text(encoding="utf-8"), path.name
-    assert checked >= 10, "глоб ничего не нашёл — проверка выродилась"
+    assert checked >= 10, "the glob found nothing — the check has degenerated"

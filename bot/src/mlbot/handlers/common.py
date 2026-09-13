@@ -1,7 +1,8 @@
-"""Команды, которые должны работать везде и всегда.
+"""Commands that must work everywhere, always.
 
-Живут отдельно от админки: та целиком под фильтром прав, и `/cancel` оттуда
-перестал бы отвечать студенту, застрявшему в диалоге поддержки.
+They live apart from the admin router: that one is entirely behind a rights
+filter, and `/cancel` there would stop answering a student stuck in a support
+dialogue.
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ async def cancel(message: Message, state: FSMContext) -> None:
 
 @router.message(Command("id"))
 async def my_id(message: Message, cfg: Config) -> None:
-    """Свой telegram-id: нужен, чтобы прописать себя в ADMIN_IDS."""
+    """Your own telegram id: needed to add yourself to ADMIN_IDS."""
     admin = cfg.is_admin(message.from_user.id, message.from_user.username)
     await message.answer(
         f"Твой telegram-id: <code>{message.from_user.id}</code>\n"

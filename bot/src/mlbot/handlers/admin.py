@@ -1,11 +1,12 @@
-"""Админское, у чего нет собственного экрана: тестер-режим, диалоги, решения.
+"""Admin work that has no screen of its own: tester mode, dialogues, decisions.
 
-Сами экраны живут узлами в `menu/admin.py`. Здесь остаётся то, что экраном не
-является: ответ на вопрос бота, разбор заявки, вход в чужую шкуру.
+The screens themselves are nodes in `menu/admin.py`. What stays here is what is
+not a screen: answering the bot's question, resolving a claim, stepping into
+someone else's shoes.
 
-Права — фильтром на обоих обсерверах роутера. Проверка внутри обработчика
-держится на том, что её не забудут; фильтр делает незащищённый обработчик в
-этом роутере невозможным.
+Rights come from a filter on both router observers. A check inside a handler
+rests on nobody forgetting it; the filter makes an unprotected handler in this
+router impossible.
 """
 
 from __future__ import annotations
@@ -43,21 +44,21 @@ class Admin(StatesGroup):
 
 
 def _is_admin(cfg: Config, user) -> bool:
-    """Права по telegram-id либо по username — см. Config.is_admin."""
+    """Rights by telegram id or by username — see Config.is_admin."""
     return cfg.is_admin(user.id, user.username)
 
 
-# --- тестер-режим: смотреть на бота глазами студента ------------------------------
+# --- tester mode: looking at the bot through a student's eyes ---------------------
 
 _TEST_PREFIX = re.compile(r"^\s*(?:/test|тест|test)\b[\s:—-]*(.*)$", re.I | re.S)
 _TEST_OFF = {"", "off", "стоп", "стop", "выход", "выйти", "exit", "stop"}
 
 
 def test_examples(course: Course) -> tuple[Student, Student]:
-    """Два примера для подсказки: с сертификатом и без.
+    """Two examples for the hint: one with a certificate, one without.
 
-    Берём самого сильного и самого «типичного» не добравшего — с несколькими
-    сдачами, но без сертификата. Детерминированно, чтобы подсказка не прыгала.
+    The strongest student and the most "typical" one who fell short — several
+    submissions but no certificate. Deterministic, so the hint does not jump.
     """
     ok = sorted(course.active, key=lambda s: (-s.passed, s.fio))
     with_cert = next((s for s in ok if s.certificate), ok[0])
@@ -82,11 +83,11 @@ async def test_mode(message: Message, cfg: Config, course: Course, store: Store)
 
 async def _enter_test(message: Message, cfg: Config, course: Course, store: Store,
                       query: str) -> None:
-    """Включить, переключить или выключить взгляд глазами студента.
+    """Turn the student's-eye view on, switch it, or turn it off.
 
-    Права проверяются и здесь, хотя оба вызывающих их уже проверили: этот
-    помощник пишет в test_views, а такая запись подменяет студента для всех
-    остальных экранов.
+    Rights are checked here too, although both callers already did: this helper
+    writes to test_views, and such a row substitutes the student on every other
+    screen.
     """
     if not _is_admin(cfg, message.from_user):
         return
@@ -196,7 +197,7 @@ async def find_student(message: Message, state: FSMContext, cfg: Config,
 
 
 
-# --- рассылка: набранный текст → замороженный список → предпросмотр ----------------
+# --- broadcast: typed text → frozen recipient list → preview ----------------------
 
 @router.message(Admin.broadcast_text, F.text)
 async def broadcast_compose(message: Message, state: FSMContext, cfg: Config,
@@ -213,9 +214,10 @@ async def broadcast_compose(message: Message, state: FSMContext, cfg: Config,
         await message.answer("Аудитория потерялась — начни заново.")
         return
 
-    # html_text, а не text. Набранные в телеграме жирный, курсив и ссылки живут
-    # в entities, а не в тексте: при `message.text` разметка пропадала молча, а
-    # случайный «<» в тексте ронял отправку сразу всем при parse_mode=HTML.
+    # html_text, not text. Bold, italics and links typed in Telegram live in
+    # entities rather than in the text: with `message.text` the formatting
+    # vanished silently, and a stray "<" broke delivery for everyone at once
+    # under parse_mode=HTML.
     body = message.html_text
     targets, unreachable = await audiences.resolve(
         audience_id, cfg, course, store, who=message.from_user.id)
@@ -228,8 +230,9 @@ async def broadcast_compose(message: Message, state: FSMContext, cfg: Config,
         body=body, targets=targets, sandbox=cfg.safe_mode)
 
     draft = await store.broadcast(cast_id)
-    # Предпросмотр — той же функцией, что и отправка: иначе «так будет выглядеть»
-    # и «так выглядит» разъезжаются. Битая разметка падает здесь, на админе.
+    # Preview through the same function as sending: otherwise "this is how it
+    # will look" and "this is how it looks" drift apart. Broken markup fails
+    # here, on the admin.
     try:
         await sender.deliver(message.bot, message.from_user.id, draft)
     except Exception as exc:
@@ -252,7 +255,7 @@ async def broadcast_compose(message: Message, state: FSMContext, cfg: Config,
 @router.message(Command("broadcast"))
 async def broadcast_cmd(message: Message, cfg: Config, course: Course,
                         store: Store, state: FSMContext) -> None:
-    """Короткий путь к тому же дереву — чтобы старая привычка не сломалась."""
+    """A shortcut into the same tree — so an old habit keeps working."""
     from ..menu import core
     from ..menu.router import context
 
@@ -263,10 +266,10 @@ async def broadcast_cmd(message: Message, cfg: Config, course: Course,
 @router.message(Admin.answering_support, F.text)
 async def send_support_answer(message: Message, state: FSMContext, cfg: Config,
                               store: Store) -> None:
-    """Ответ уходит студенту, обращение помечается отвеченным.
+    """The reply goes to the student and the ticket is marked answered.
 
-    В песочнице письмо развернётся на администратора — предохранитель стоит на
-    пути каждого вызова API, и этот не исключение.
+    In the sandbox the letter is redirected to the admin — the safety catch sits
+    on every API call, and this one is no exception.
     """
     data = await state.get_data()
     await state.clear()
@@ -286,7 +289,7 @@ async def send_support_answer(message: Message, state: FSMContext, cfg: Config,
     await message.answer(f"✅ Ответ на #{ticket['id']} отправлен.")
 
 
-# --- домашка третьего сезона ---------------------------------------------------------
+# --- season 3 homework ------------------------------------------------------------------
 
 @router.message(Admin.homework_text, F.text)
 async def got_homework(message: Message, state: FSMContext, cfg: Config,

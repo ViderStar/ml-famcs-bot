@@ -1,16 +1,16 @@
-"""Сопоставление формы регистрации с формой сдачи: ФИО → telegram-username.
+"""Matching the registration form to the submission form: name → telegram username.
 
-Форма сдачи домашек содержит только ФИО и ссылку на репозиторий, а username
-живёт в другой таблице — форме регистрации на курс. Здесь эти две таблицы
-сшиваются по ФИО.
+The homework submission form holds only a name and a repository link, while the
+username lives in another table — the course registration form. Here the two are
+stitched together by name.
 
-Осторожность тут дороже полноты. Username идёт в бота как способ мгновенно
-узнать студента, поэтому ошибочная связка означает, что чужой человек увидит
-чей-то разбор. Правила приняты только те, что не могут склеить двух разных
-людей: полное совпадение пары «фамилия + имя», уменьшительное имя при точной
-фамилии и одиночная фамилия, встречающаяся в регистрации ровно один раз.
-Всё сомнительное остаётся неразобранным — такой студент проходит обычную
-привязку по ФИО и ссылке, она надёжнее любой догадки.
+Caution beats completeness. The username reaches the bot as a way to recognise a
+student instantly, so a wrong link means a stranger sees someone's review. Only
+rules that cannot merge two different people are accepted: a full "surname +
+given name" match, a diminutive given name with an exact surname, and a lone
+surname that appears exactly once in the registration. Anything doubtful stays
+unmatched — that student goes through the usual binding by name and link, which
+is more reliable than any guess.
 """
 
 from __future__ import annotations
@@ -22,15 +22,15 @@ from pathlib import Path
 
 from .config import Config, load
 
-# В ФИО попадают латинские двойники русских букв — «Caфiя» набрано в двух
-# алфавитах сразу. Приводим к одному, иначе фамилия не найдётся.
+# Names pick up Latin lookalikes of Cyrillic letters — some are typed in two
+# alphabets at once. Normalise to one, or the surname will not be found.
 _LAT2CYR = str.maketrans({
     "a": "а", "e": "е", "o": "о", "c": "с", "p": "р", "y": "у", "x": "х",
     "i": "и", "k": "к", "m": "м", "t": "т", "h": "н", "b": "в",
 })
 _USERNAME = re.compile(r"^[A-Za-z0-9_]{4,32}$")
-# Username в Telegram только латиницей, но в форме его набирают с русской
-# раскладки: «@Сohanaia» начинается с кириллической «С». Возвращаем латиницу.
+# Telegram usernames are Latin only, but people type them on a Russian keyboard
+# layout, so the first letter comes out Cyrillic. Put the Latin one back.
 _CYR2LAT = str.maketrans({
     "а": "a", "е": "e", "о": "o", "с": "c", "р": "p", "у": "y", "х": "x",
     "к": "k", "м": "m", "т": "t", "в": "b", "н": "h", "и": "i",
@@ -39,9 +39,9 @@ _CYR2LAT = str.maketrans({
 })
 _TME = re.compile(r"(?:https?://)?(?:t|telegram)\.me/(?:s/)?([A-Za-z0-9_]+)", re.I)
 
-# Уменьшительные имена, встретившиеся в этих двух формах. Список сознательно
-# короткий: он применяется только при точном совпадении фамилии, и добавлять
-# в него что-то «на будущее» смысла нет — лишнее правило только повышает риск.
+# Diminutive given names seen in these two forms. The list is deliberately
+# short: it only applies when the surname matches exactly, and adding entries
+# "for the future" is pointless — an extra rule only raises the risk.
 _SHORT = {
     "лиза": "елизавета", "влад": "владислав", "саша": "александр",
     "женя": "евгений", "дима": "дмитрий", "миша": "михаил",
@@ -60,12 +60,12 @@ def normalize(s: str) -> str:
 
 
 def tokens(fio: str) -> list[str]:
-    """Значимые части ФИО. Односимвольные обрывки и инициалы отбрасываем."""
+    """The meaningful parts of a name. One-character fragments and initials are dropped."""
     return [t for t in normalize(fio).split() if len(t) > 1]
 
 
 def clean_username(raw: str) -> str:
-    """Username из свободного поля: ссылка, собачка и лишние пробелы убираются."""
+    """A username from a free-text field: link, @ and stray spaces removed."""
     raw = (raw or "").strip()
     if m := _TME.search(raw):
         raw = m.group(1)
@@ -86,7 +86,7 @@ class Registration:
 
 @dataclass
 class Link:
-    """Одна связка «студент из формы сдачи ↔ регистрация»."""
+    """One link between a submission-form student and a registration row."""
 
     key: str
     fio: str
@@ -98,7 +98,7 @@ class Link:
 
     @property
     def usable(self) -> bool:
-        """Можно ли узнавать студента по этому username автоматически."""
+        """Whether this username may be used to recognise the student automatically."""
         return bool(self.username) and self.match != "none" and self.exists != "no"
 
 
@@ -118,7 +118,7 @@ def read_registration(path: Path) -> list[Registration]:
 
 
 def _confirms(reg_name: str, given: str) -> str:
-    """Подтверждает ли имя из регистрации имя из формы сдачи."""
+    """Whether the registration given name confirms the submission one."""
     if reg_name == given:
         return "exact"
     if _SHORT.get(given) == reg_name or _SHORT.get(reg_name) == given:
@@ -145,12 +145,12 @@ def match(roster: list[dict], regs: list[Registration]) -> list[Link]:
         link = Link(key=st["key"], fio=st["fio"])
         t = tokens(st["fio"])
 
-        # 1. Полная пара «фамилия + имя» в любом порядке.
+        # 1. A full "surname + given name" pair in either order.
         hit = by_pair.get(frozenset(t[:2])) if len(t) >= 2 else None
         kind = "exact"
 
-        # 2. Точная фамилия плюс подтверждённое имя. Фамилия в форме сдачи
-        #    бывает записана второй («Кирилл Иванов»), поэтому пробуем оба порядка.
+        # 2. Exact surname plus a confirmed given name. In the submission form the
+        #    surname is sometimes written second, so both orders are tried.
         if not hit and len(t) >= 2:
             for surname, given in ((t[0], t[1]), (t[1], t[0])):
                 cands = [
@@ -161,15 +161,15 @@ def match(roster: list[dict], regs: list[Registration]) -> list[Link]:
                     hit, kind = cands, "diminutive"
                     break
 
-        # 3. Одна фамилия без имени — принимаем, только если в регистрации
-        #    такая фамилия ровно одна. Однофамильцы остаются неразобранными.
+        # 3. A lone surname with no given name — accepted only if the registration
+        #    holds exactly one such surname. Namesakes stay unmatched.
         if not hit and len(t) == 1:
             cands = by_surname.get(t[0], [])
             if len(cands) == 1:
                 hit, kind = cands, "surname"
 
-        # Форму регистрации некоторые отправили дважды. Если все кандидаты
-        # указали один username, это один человек, а не однофамильцы.
+        # Some people submitted the registration form twice. If every candidate
+        # gave the same username, it is one person, not namesakes.
         if hit and len(hit) > 1 and len({r.username for r in hit}) == 1 and hit[0].username:
             hit = hit[:1]
 
@@ -186,7 +186,7 @@ def match(roster: list[dict], regs: list[Registration]) -> list[Link]:
             link.note = "регистрационную форму не заполнял"
         links.append(link)
 
-    # Один username на двух студентов — связка ненадёжна для обоих.
+    # One username for two students — the link is unreliable for both.
     seen: dict[str, list[Link]] = {}
     for lk in links:
         if lk.username:
@@ -228,20 +228,20 @@ def build(cfg: Config | None = None) -> list[Link]:
     return match(roster, regs)
 
 
-# --- проверка существования ------------------------------------------------------
+# --- existence check ----------------------------------------------------------------
 #
-# Публичная страница t.me отдаёт имя владельца в og:title, а для свободного
-# username — заглушку «Telegram: Contact @…». Это единственная проверка, доступная
-# без бота в общих чатах: getChat по username работает только для тех, кто уже
-# писал боту. Ответ «нет» означает «такого username сейчас не существует» — он
-# мог быть и переименован, поэтому связка не удаляется, а помечается.
+# The public t.me page returns the owner's name in og:title, and for a free
+# username a placeholder "Telegram: Contact @...". This is the only check
+# available without the bot sharing a chat: getChat by username works only for
+# people who already wrote to the bot. A "no" means "this username does not exist
+# right now" — it may have been renamed, so the link is flagged, not deleted.
 
 _CONTACT = re.compile(r'og:title" content="Telegram: Contact @', re.I)
 _TITLE = re.compile(r'og:title" content="([^"]*)"')
 
 
 def probe(username: str, timeout: float = 15.0) -> tuple[str, str]:
-    """('yes'|'no'|'unknown', отображаемое имя)."""
+    """('yes'|'no'|'unknown', display name)."""
     import urllib.error
     import urllib.request
 
@@ -254,7 +254,7 @@ def probe(username: str, timeout: float = 15.0) -> tuple[str, str]:
             body = resp.read(60_000).decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         return ("no", "") if exc.code == 404 else ("unknown", f"HTTP {exc.code}")
-    except Exception as exc:                                  # сеть, таймаут, TLS
+    except Exception as exc:                                  # network, timeout, TLS
         return "unknown", type(exc).__name__
     if _CONTACT.search(body):
         return "no", ""
@@ -263,7 +263,7 @@ def probe(username: str, timeout: float = 15.0) -> tuple[str, str]:
 
 
 def verify(links: list[Link], workers: int = 4, pause: float = 0.15) -> list[Link]:
-    """Проверяет username-ы связок. Мягко по нагрузке: t.me — чужой сервис."""
+    """Checks the usernames of the links. Gently: t.me is someone else's service."""
     import time
     from concurrent.futures import ThreadPoolExecutor
 

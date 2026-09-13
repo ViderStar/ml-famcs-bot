@@ -1,18 +1,17 @@
-"""Третий сезон: анкета, три источника, репозиторий.
+"""Season 3: the form, three sinks, the repository.
 
-Главное здесь — что анкету нельзя потерять. Она заполняется в двенадцать шагов,
-переживает перезапуск, а запись в свою базу и постановка заданий приёмникам
-идут одной транзакцией: окна, в которое можно упасть, между ними нет.
+The point here is that the form cannot be lost. It is filled in twelve steps,
+survives a restart, and saving it plus enqueueing the sink tasks happen in one
+transaction: there is no window between them to crash in.
 """
 
-import json
 
 import pytest
 
 from harness import Bench
 from mlbot.menu import core
 from mlbot.season3 import wizard
-from mlbot.sinks import csv_file, worker
+from mlbot.sinks import worker
 from mlbot.store import Store
 
 ME = 4242
@@ -32,7 +31,7 @@ def cfg3(cfg, tmp_path):
 
 
 async def fill(bench, store, *, tracks=("cv", "dl")) -> dict:
-    """Пройти анкету до конца так, как её проходит человек."""
+    """Walk the form to the end the way a person does."""
     await bench.press(core.cb("s3.reg"))
     await bench.send("Иванов Иван Иванович")
     await bench.send("ivanov@gmail.com")
@@ -52,7 +51,7 @@ async def fill(bench, store, *, tracks=("cv", "dl")) -> dict:
     return (await store.application(ME))["answers"]
 
 
-# --- анкета ------------------------------------------------------------------------
+# --- the form ------------------------------------------------------------------------
 
 async def test_a_person_can_walk_the_whole_form(cfg3, course, store):
     bench = Bench(cfg3, course, store, user_id=ME, username="newbie")
@@ -64,49 +63,49 @@ async def test_a_person_can_walk_the_whole_form(cfg3, course, store):
 
 
 async def test_the_form_covers_every_field_of_the_google_form(cfg3, course, store):
-    """Ни одно поле прошлогодней формы не потерялось при переезде в бота."""
+    """No field of last year's form was lost in the move into the bot."""
     ours = set(wizard.ORDER)
-    # Что спрашивала гугл-форма второго сезона (телеграм не в счёт — он приходит
-    # с апдейтом и подделать его нельзя).
+    # What the season 2 Google form asked (telegram does not count — it arrives
+    # with the update and cannot be forged).
     was = {"fio", "email", "university", "faculty", "year", "level",
            "python", "math", "ml", "knows", "why"}
     assert was <= ours, was - ours
-    assert "tracks" in ours, "направления — новое поле третьего сезона"
+    assert "tracks" in ours, "tracks are a new season 3 field"
 
 
 async def test_scales_cannot_take_garbage(cfg3, course, store):
-    """В прошлой форме в числовых полях лежат «Бро», «1.5» и целые предложения.
+    """The old form's numeric fields contain "Бро", "1.5" and whole sentences.
 
-    Это свойство поля ввода, а не небрежность отвечающих. Кнопка делает такой
-    ответ невозможным.
+    That is a property of the input field, not carelessness by respondents. A
+    button makes such an answer impossible.
     """
     for step_id in ("python", "math", "ml", "level", "year"):
         step = wizard.step(step_id)
-        assert step.kind == "choice", f"{step_id} снова стал свободным вводом"
+        assert step.kind == "choice", f"{step_id} went back to free text"
         assert step.validate is None
-        assert step.choices({}), f"у {step_id} нет вариантов"
+        assert step.choices({}), f"{step_id} has no options"
 
 
 async def test_a_bad_answer_does_not_advance_the_form(cfg3, course, store):
     bench = Bench(cfg3, course, store, user_id=ME)
     await bench.press(core.cb("s3.reg"))
-    await bench.send("Иванов")                    # одно слово — не ФИО
+    await bench.send("Иванов")                    # one word is not a full name
     assert "фамилия и имя" in bench.text.lower()
     app = await store.application(ME)
     assert app["answers"].get("fio") is None
 
 
 async def test_the_draft_survives_a_restart(cfg3, course, store):
-    """Черновик в SQLite, а не в состоянии: MemoryStorage не переживает рестарт."""
+    """The draft is in SQLite, not in state: MemoryStorage does not survive a restart."""
     bench = Bench(cfg3, course, store, user_id=ME)
     await bench.press(core.cb("s3.reg"))
     await bench.send("Иванов Иван Иванович")
     await bench.send("ivanov@gmail.com")
 
-    reborn = Bench(cfg3, course, store, user_id=ME)   # новый диспетчер, пустой FSM
+    reborn = Bench(cfg3, course, store, user_id=ME)   # a fresh dispatcher, empty FSM
     out = await reborn.press(core.cb("s3.reg"))
     shown = " ".join(s.text for s in out)
-    assert "Где учишься" in shown, "анкета начала заново вместо продолжения"
+    assert "Где учишься" in shown, "the form restarted instead of continuing"
 
 
 async def test_tracks_require_at_least_one(cfg3, course, store):
@@ -136,13 +135,13 @@ async def test_submitting_fills_all_three_sources_in_one_transaction(cfg3, cours
     app = (await store.application(ME))
     assert app["status"] == "submitted"
     assert sorted((await store.track_counts()).items()) == [("cv", 1), ("dl", 1)]
-    # Задания приёмникам созданы той же транзакцией — окна между ними нет.
+    # The sink tasks were created in the same transaction — no window between.
     queued = {t["sink"] for t in await store.outbox_batch()}
     assert queued == {"csv", "notion"}
 
 
 async def test_notion_being_down_does_not_lose_the_application(cfg3, course, store):
-    """Приёмник недоступен — анкета уже в своей базе, задание ждёт в очереди."""
+    """A sink is down — the form is already in our database, the task waits in the queue."""
     bench = Bench(cfg3, course, store, user_id=ME, username="newbie")
     await fill(bench, store)
     await bench.press(core.cb("s3.go"))
@@ -151,34 +150,34 @@ async def test_notion_being_down_does_not_lose_the_application(cfg3, course, sto
     await worker.once(cfg3, store)
 
     path = cfg3.export_dir / "s3_applications.csv"
-    assert path.exists(), "файл рядом с ботом обязан появиться без всякого Notion"
+    assert path.exists(), "the local file must appear without any Notion"
     assert "ivanov@gmail.com" in path.read_text(encoding="utf-8-sig")
     left = {t["sink"] for t in await store.outbox_batch()}
-    assert left == {"notion"}, "задание в Notion должно ждать, а не потеряться"
+    assert left == {"notion"}, "the Notion task must wait, not vanish"
     assert (await store.application(ME))["status"] == "submitted"
 
 
 async def test_the_csv_is_a_projection_not_an_append_log(cfg3, course, store):
-    """Перегенерируем целиком: дописывание дало бы вторую строку на того же человека."""
+    """Regenerated whole: appending would add a second row for the same person."""
     bench = Bench(cfg3, course, store, user_id=ME, username="newbie")
     await fill(bench, store)
     await bench.press(core.cb("s3.go"))
     await worker.once(cfg3, store)
-    await worker.once(cfg3, store)          # повторный прогон того же задания
+    await worker.once(cfg3, store)          # the same task run again
     path = cfg3.export_dir / "s3_applications.csv"
     body = path.read_text(encoding="utf-8-sig").strip().splitlines()
-    assert len(body) == 2, body            # заголовок и одна анкета
+    assert len(body) == 2, body            # a header and one application
 
 
 async def test_a_stale_task_is_skipped(cfg3, course, store):
-    """Серия правок схлопывается до последней ревизии, а не летит десятью запросами."""
+    """A run of edits collapses to the last revision instead of ten requests."""
     bench = Bench(cfg3, course, store, user_id=ME, username="newbie")
     await fill(bench, store)
     await bench.press(core.cb("s3.go"))
     tasks = await store.outbox_batch()
     csv_task = next(t for t in tasks if t["sink"] == "csv")
     await store.mark_synced({**csv_task, "rev": csv_task["rev"] + 5})
-    # Ещё одно задание той же, уже устаревшей ревизии.
+    # Another task of the same, already stale revision.
     await store.submit_application(ME, ["cv"], sinks=("csv",))
     before = (cfg3.export_dir / "s3_applications.csv").exists()
     await worker.once(cfg3, store)
@@ -186,10 +185,10 @@ async def test_a_stale_task_is_skipped(cfg3, course, store):
     assert before is False
 
 
-# --- репозиторий ---------------------------------------------------------------------
+# --- repository ------------------------------------------------------------------------
 
 async def test_a_repo_is_never_rejected(cfg3, course, store, monkeypatch):
-    """404 не отличить от приватного — отказывать по нему значит терять честные работы."""
+    """A 404 is indistinguishable from private — refusing on it loses honest work."""
     from mlbot import github
 
     async def nowhere(cfg, repo):
@@ -213,7 +212,7 @@ async def test_a_broken_link_is_not_saved(cfg3, course, store):
 
 
 async def test_the_repo_check_is_cached(cfg3, course, store, monkeypatch):
-    """Без токена GitHub даёт 60 запросов в час — на поток этого не хватает."""
+    """Without a token GitHub allows 60 requests an hour — not enough for a stream."""
     from mlbot import github
 
     calls = []
@@ -229,11 +228,11 @@ async def test_the_repo_check_is_cached(cfg3, course, store, monkeypatch):
 
 
 def test_the_bot_never_asks_for_repository_contents():
-    """Ссылка на работу — не доступ к ней. Структурная проверка, не обещание.
+    """A link to the work is not access to it. A structural check, not a promise.
 
-    Смотрим именно строковые литералы — путь вида `/contents` появился бы
-    внутри f-строки с адресом, — но выбрасываем строки документации: иначе
-    тест поймал бы абзац, объясняющий это правило, а не код.
+    String literals specifically: a path like `/contents` would appear inside an
+    f-string with the URL. Docstrings are excluded — otherwise the test would
+    catch the paragraph explaining this rule rather than the code.
     """
     import ast
     from pathlib import Path
@@ -253,18 +252,18 @@ def test_the_bot_never_asks_for_repository_contents():
     literals = [n.value for n in ast.walk(tree)
                 if isinstance(n, ast.Constant) and isinstance(n.value, str)
                 and id(n) not in docstrings]
-    assert len(literals) > 10, "строк не нашлось — проверка выродилась"
+    assert len(literals) > 10, "no literals found — the check has degenerated"
 
     haystack = " ".join(literals).lower()
     for forbidden in ("contents", "zipball", "tarball", "raw.", "clone", "/git/"):
         assert forbidden not in haystack, (
-            f"бот запрашивает содержимое репозитория: {forbidden!r}")
-    # А то, что он запрашивает, — ровно факт существования.
+            f"the bot requests repository contents: {forbidden!r}")
+    # And what it does request is exactly the fact of existence.
     assert any("/repos/" in lit for lit in literals)
 
 
 def test_every_option_fits_the_callback_budget():
-    """Кириллица в значении съедает по два байта — проверяем на настоящих вариантах."""
+    """Cyrillic in a value costs two bytes per character — checked on the real options."""
     checked = 0
     for step in wizard.STEPS:
         for value, _ in step.choices({"university": "БГУ"}):
@@ -274,10 +273,10 @@ def test_every_option_fits_the_callback_budget():
     assert checked > 30
 
 
-# --- домашки -------------------------------------------------------------------------
+# --- homework --------------------------------------------------------------------------
 
 async def test_two_tracks_give_one_message_not_two(cfg3, course, store):
-    """Студент на CV и на DL получает одно сообщение — подписка не наказывает дублями."""
+    """A student on CV and DL gets one message — signing up twice is not punished with duplicates."""
     bench = Bench(cfg3, course, store, user_id=ME, username="newbie")
     await fill(bench, store, tracks=("cv", "dl"))
     await bench.press(core.cb("s3.go"))
@@ -308,7 +307,7 @@ async def test_a_homework_is_only_visible_to_its_tracks(cfg3, course, store):
 
 
 async def test_a_deadline_is_kept_in_utc_and_shown_in_minsk():
-    """Перенос сервера в другой пояс не должен сдвигать срок у всех разом."""
+    """Moving the server to another timezone must not shift everyone's deadline."""
     from datetime import datetime
 
     from mlbot.season3 import deadline
@@ -316,14 +315,14 @@ async def test_a_deadline_is_kept_in_utc_and_shown_in_minsk():
     now = datetime(2027, 3, 1, tzinfo=deadline.MINSK)
     iso = deadline.parse("срок: 14.03 23:59", now=now)
     assert iso is not None and iso.endswith("+00:00")
-    assert "20:59" in iso, iso            # 23:59 минского — это 20:59 UTC
+    assert "20:59" in iso, iso            # 23:59 Minsk is 20:59 UTC
     assert deadline.show(iso) == "14.03 23:59 по Минску"
     assert deadline.parse("завтра") is None
-    assert deadline.parse("срок: 31.02") is None      # такой даты не бывает
+    assert deadline.parse("срок: 31.02") is None      # no such date exists
 
 
 async def test_username_changes_are_written_down(cfg3, course, store):
-    """Смена username должна быть видна, а не восстанавливаться по памяти."""
+    """A username change must be visible, not reconstructed from memory."""
     first = Bench(cfg3, course, store, user_id=ME, username="oldname")
     await first.send("/start")
     second = Bench(cfg3, course, store, user_id=ME, username="newname")

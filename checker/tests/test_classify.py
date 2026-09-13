@@ -1,8 +1,8 @@
-"""Классификация тем по содержимому.
+"""Topic classification by content.
 
-Имя папки на курсе ненадёжно: встречается `hw04 (LOG REGRESSION)` с линейной
-регрессией внутри, сдвинутая на единицу нумерация и папки, поголовно названные
-`setup_tools`. Поэтому решает содержимое.
+A folder name is unreliable on this course: there is an `hw04 (LOG REGRESSION)`
+holding linear regression, numbering off by one, and folders all named
+`setup_tools`. So content decides.
 """
 
 import pytest
@@ -22,7 +22,7 @@ def _classify(write_nb, cells, name):
 
 
 def test_content_wins_over_wrong_folder_name(write_nb):
-    """Случай из потока: папка «LOG REGRESSION», а внутри линейная регрессия."""
+    """A case from the stream: a folder called "LOG REGRESSION" holding linear regression."""
     cells = [("code",
               "from sklearn.linear_model import LinearRegression\n"
               "df = pd.read_csv('ToyotaCorolla.csv')\n"
@@ -34,7 +34,7 @@ def test_content_wins_over_wrong_folder_name(write_nb):
 
 
 def test_shifted_numbering_is_resolved_by_content(write_nb):
-    """Случай из потока: логистическая регрессия лежит в папке hw06_."""
+    """A case from the stream: logistic regression sitting in an hw06_ folder."""
     cells = [("code",
               "class MyLogisticRegressionGD:\n    pass\n"
               "def sigmoid(z): return 1/(1+np.exp(-z))\n"
@@ -45,7 +45,7 @@ def test_shifted_numbering_is_resolved_by_content(write_nb):
 
 
 def test_ipynb_extension_does_not_grant_filename_confidence(write_nb):
-    """Подсказка «nb» не должна ловиться на расширении .ipynb у каждого файла."""
+    """The hint "nb" must not match the .ipynb extension on every file."""
     cells = [("code", "x = 1\n", 1)]
     assert _classify(write_nb, cells, "random_scratch.ipynb") == set()
 
@@ -57,7 +57,7 @@ def test_hyphen_and_underscore_are_equivalent_in_names(write_nb):
 
 
 def test_eda_inside_another_homework_is_not_credited_as_eda(write_nb):
-    """EDA есть почти в каждой домашке — сама по себе она не домашка по EDA."""
+    """Almost every homework contains EDA — that alone does not make it the EDA homework."""
     cells = [("code",
               "df.info()\ndf.describe()\ndf.isnull().sum()\n"
               "sns.heatmap(df.corr())\ndf['x'].fillna(df['x'].median())\n"
@@ -77,7 +77,7 @@ def test_full_eda_checklist_is_credited_as_eda(write_nb):
 
 
 def test_notebook_may_cover_two_topics(write_nb):
-    """Задание по лесу просит дополнить ноутбук из домашки по линейной регрессии."""
+    """The forest assignment asks students to extend their linear-regression notebook."""
     cells = [("code",
               "from sklearn.linear_model import LinearRegression\n"
               "from sklearn.ensemble import RandomForestRegressor\n"
@@ -89,7 +89,7 @@ def test_notebook_may_cover_two_topics(write_nb):
 
 
 def test_path_named_submission_wins_over_richer_foreign_notebook(write_nb, tmp_path):
-    """Работа в папке своей темы важнее чужого ноутбука, где кода больше."""
+    """Work in its own topic folder outranks another notebook with more code."""
     real = nbio.load(write_nb(
         [("code", "df.describe(include='object')\ndf.skew()\ndf.kurt()\n"
                   "pd.get_dummies(df)\nimport plotly.express as px\n", 1)],
@@ -110,7 +110,7 @@ def test_unparseable_notebook_is_not_classified(tmp_path):
 
 
 def test_own_homework_wins_over_lecture_template_copy(write_nb):
-    """В папке лежат и раздаточный ноутбук лекции, и своя домашка — выбрать надо свою."""
+    """The folder holds both the lecture handout and the student's own homework — pick theirs."""
     import mlcheck.classify as cls
 
     template_cells = [("code", f"# ячейка лекции {i}\nprint({i})\n") for i in range(20)]
@@ -134,14 +134,14 @@ def test_own_homework_wins_over_lecture_template_copy(write_nb):
         cls._own_cells = orig
 
 
-# --- fallback по папке ------------------------------------------------------------
+# --- folder fallback ---------------------------------------------------------------
 
 def _nb(write_nb, cells, rel):
     return nbio.load(write_nb(cells, name=rel.replace("/", "__")), rel=rel)
 
 
 def test_folder_fallback_credits_orphan_when_topic_is_empty(write_nb, rubrics):
-    """Брошенная EDA в «hw02/»: по содержимому не опознаётся, но это заявка на тему."""
+    """An abandoned EDA in "hw02/": unrecognisable by content, but still a claim on the topic."""
     orphan = _nb(write_nb, [("code", "df = pd.read_csv('x.csv')\ndf.isnull().sum()\n", 1)],
                  "hw02/analysis.ipynb")
     chosen, unmatched = classify.pick_submissions([orphan], rubrics)
@@ -169,7 +169,7 @@ def test_folder_fallback_ignores_unknown_topic_numbers(write_nb, rubrics):
 
 
 def test_folder_fallback_looks_at_directory_not_filename(write_nb, rubrics):
-    """Файл «hw_1.ipynb» в корне — не папка темы: под правило не попадает."""
+    """A file "hw_1.ipynb" at the root is not a topic folder: the rule does not apply."""
     orphan = _nb(write_nb, [("code", "x = 1\n", 1)], "hw_1.ipynb")
     chosen, _ = classify.pick_submissions([orphan], rubrics)
     assert chosen == {}

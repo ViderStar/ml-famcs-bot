@@ -1,8 +1,8 @@
-"""Список команд для кнопки «Меню» рядом с полем ввода.
+"""The command list behind the Menu button next to the input field.
 
-Телеграм показывает его сам, но только если бот прислал список через
-setMyCommands. Админские команды видны лишь администраторам — для них список
-задаётся отдельно, в области конкретного чата.
+Telegram shows it on its own, but only if the bot sent the list through
+setMyCommands. Admin commands are visible to admins only — their list is set
+separately, scoped to their chat.
 """
 
 from __future__ import annotations
@@ -47,5 +47,5 @@ async def setup(bot: Bot, admin_ids) -> None:
                 scope=BotCommandScopeChat(chat_id=admin_id),
             )
         except Exception:
-            # Админ ещё не писал боту — список подхватится при следующем запуске.
+            # The admin has not written to the bot yet — the list will be picked up next start.
             pass

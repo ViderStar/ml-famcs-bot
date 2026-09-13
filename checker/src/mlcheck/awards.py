@@ -1,11 +1,11 @@
-"""Реестр наград: чей сертификат в каком PDF и чья фотография с вручения.
+"""The award registry: whose certificate is in which PDF and whose ceremony photo.
 
-Файлы сертификатов называются `sertificate_original-N.pdf` — по имени файла не
-понять, чей он, а отправить студенту чужой сертификат нельзя: там его ФИО.
-Поэтому имя читается из текстового слоя самого PDF и сверяется со списком
-прошедших курс. Фотографии названы по ФИО, но macOS хранит имена файлов в форме
-NFD, где «й» — это «и» плюс отдельный знак, поэтому перед сравнением всё
-приводится к NFC.
+Certificate files are called `sertificate_original-N.pdf` — the name tells you
+nothing about the owner, and sending a student someone else's certificate is not
+an option: it carries their name. So the name is read from the PDF's own text
+layer and matched against the list of people who passed. Photos are named after
+people, but macOS stores file names in NFD form, so everything is normalised to
+NFC before comparison.
 """
 
 from __future__ import annotations
@@ -19,24 +19,24 @@ from pathlib import Path
 from .config import Config, load
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png"}
-# Ниже этого сходства совпадение считается недоказанным и в реестр не идёт.
+# Below this similarity a match counts as unproven and does not reach the registry.
 FUZZY_MIN = 88
 
 
 def norm(text: str) -> str:
-    """Только буквы, без регистра, ё=е и с приведением к NFC."""
+    """Letters only, case-folded, ё=е, normalised to NFC."""
     text = unicodedata.normalize("NFC", text or "")
     return re.sub(r"[^а-яё]", "", text.lower().replace("ё", "е"))
 
 
 def word_set(text: str) -> frozenset[str]:
-    """Слова имени без порядка: в части файлов фамилия и имя переставлены."""
+    """Name words without order: in some files surname and given name are swapped."""
     text = unicodedata.normalize("NFC", text or "").lower().replace("ё", "е")
     return frozenset(re.findall(r"[а-я]+", text))
 
 
 def name_in_pdf(path: Path) -> str | None:
-    """ФИО из сертификата. Буквы в тексте разрежены пробелами — склеиваем."""
+    """The name from a certificate. Letters are space-separated in the text — join them."""
     import pypdf
 
     try:
@@ -54,13 +54,13 @@ def name_in_pdf(path: Path) -> str | None:
 class Award:
     key: str
     fio: str
-    certificate: str = ""     # путь от корня проекта
+    certificate: str = ""     # path from the project root
     photo: str = ""
     note: str = ""
 
 
 def _match(candidate: str, targets: dict[str, str]) -> tuple[str | None, str]:
-    """(ФИО из списка, как сопоставили). targets: нормализованное ФИО → ФИО."""
+    """(name from the list, how it matched). targets: normalised name → name."""
     n = norm(candidate)
     if n in targets:
         return targets[n], "точно"
@@ -76,7 +76,7 @@ def _match(candidate: str, targets: dict[str, str]) -> tuple[str | None, str]:
 
 
 def build(src: Path, cfg: Config | None = None) -> tuple[list[Award], list[str]]:
-    """Реестр по каталогу с `pdf/` и `photos/`. Второй список — что требует глаз."""
+    """A registry from a directory with `pdf/` and `photos/`. The second list needs eyes."""
     cfg = cfg or load()
     root = cfg.paths.out.parent
     holders: dict[str, str] = {}
@@ -143,7 +143,7 @@ def save(awards: list[Award], cfg: Config | None = None) -> Path:
 
 
 def load_awards(path: Path) -> dict[str, Award]:
-    """Реестр по ключу студента — для бота."""
+    """A registry keyed by student — for the bot."""
     if not path.exists():
         return {}
     with path.open(encoding="utf-8") as fh:

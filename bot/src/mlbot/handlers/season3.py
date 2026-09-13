@@ -1,7 +1,7 @@
-"""Свободный ввод третьего сезона: ответы анкеты и ссылка на репозиторий.
+"""Season 3 free text: form answers and the repository link.
 
-Один обработчик на все текстовые шаги — какой именно шаг отвечают, лежит в
-состоянии. Двенадцать обработчиков здесь не нужны: шаги описаны данными.
+One handler for every text step — which step is being answered lives in the
+state. Twelve handlers are not needed here: the steps are data.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ async def got_answer(message: Message, state: FSMContext, cfg: Config,
     value = message.text.strip()
     problem = step.validate(value) if step.validate else None
     if problem:
-        # Состояние не снимаем: человек отвечает тем же сообщением ещё раз.
+        # The state stays: the person answers again with another message.
         await message.answer(f"{problem}\n\nПопробуй ещё раз или /cancel")
         return
 
@@ -56,10 +56,10 @@ async def got_answer(message: Message, state: FSMContext, cfg: Config,
 @router.message(Form.repo, F.text & ~F.text.startswith("/"))
 async def got_repo(message: Message, state: FSMContext, cfg: Config,
                    store: Store) -> None:
-    """Привязка не блокируется проверкой.
+    """Binding is not blocked by the check.
 
-    404 от GitHub не отличить от приватного репозитория, и отказывать по нему
-    значило бы отвергать честные работы. Проверка — подсказка, а не вахтёр.
+    A GitHub 404 is indistinguishable from a private repository, and refusing on
+    it would reject honest work. The check is a hint, not a gatekeeper.
     """
     from .. import github
 

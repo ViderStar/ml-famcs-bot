@@ -1,4 +1,4 @@
-"""Вердикт: когда домашка засчитана и когда выдаётся сертификат."""
+"""The verdict: when a homework passes and when a certificate is issued."""
 
 from conftest import text_output
 
@@ -75,7 +75,7 @@ def test_missing_homework_is_marked_missing(write_nb):
 
 
 def test_too_few_rubric_points_fails(write_nb):
-    """Ноутбук запускается, но закрывает меньше 70% обязательных пунктов."""
+    """The notebook runs but closes fewer than 70% of the required items."""
     rep, _ = _build(_work(write_nb, [
         ("markdown", "## Выводы\n\n" + "Текст. " * 40),
         ("code", "import pandas as pd\ndf = pd.read_csv('a.csv')\n"
@@ -87,8 +87,8 @@ def test_too_few_rubric_points_fails(write_nb):
 
 
 def test_homework_without_required_points_passes_when_it_runs(write_nb):
-    """hw01 и hw07 роздали уже решёнными: требовать в них нечего,
-    и зачёт держится только на том, что ноутбук запускается."""
+    """hw01 and hw07 were handed out already solved: nothing to demand,
+    and the pass rests only on the notebook running."""
     rep, _ = _build(_work(write_nb, [
         ("code", "print('ok')", 1, [text_output()]),
     ], hw="hw07"))
@@ -97,7 +97,7 @@ def test_homework_without_required_points_passes_when_it_runs(write_nb):
 
 
 def test_certificate_threshold(write_nb):
-    """Порог берётся из конфига, тест не должен ломаться при его смене."""
+    """The threshold comes from the config; the test must survive changing it."""
     cfg = load()
     total = 12
     need = report.required_passed(total, cfg)
@@ -115,13 +115,13 @@ def test_certificate_threshold(write_nb):
 
 
 def test_required_passed_rounds_down_in_favour_of_students():
-    """66% от 12 тем — это 7.92; требовать восемь было бы натяжкой."""
+    """66% of 12 topics is 7.92; demanding eight would be a stretch."""
     assert report.required_passed_for(0.66, 12) == 7
     assert report.required_passed_for(0.50, 12) == 6
     assert report.required_passed_for(0.75, 12) == 9
-    # Ровное деление не должно ничего сдвигать.
+    # An exact division must not shift anything.
     assert report.required_passed_for(0.5, 10) == 5
-    # И хотя бы одна домашка нужна всегда.
+    # And at least one homework is always required.
     assert report.required_passed_for(0.0, 12) == 1
 
 
@@ -162,15 +162,15 @@ def test_llm_other_code_is_kept_as_free_text(write_nb):
 
 
 def test_every_finding_has_a_catalog_article():
-    """Бот показывает пояснение по коду — статья обязана существовать."""
+    """The bot shows an explanation by code — the article must exist."""
     from mlcheck.catalog import coverage
     missing, orphans = coverage()
-    assert not missing, f"нет статей для: {sorted(missing)}"
-    assert not orphans, f"статьи без кода: {sorted(orphans)}"
+    assert not missing, f"no articles for: {sorted(missing)}"
+    assert not orphans, f"articles with no code: {sorted(orphans)}"
 
 
 def test_llm_code_without_prefix_is_normalized(write_nb):
-    """Проверяющий иногда теряет префикс — это форматная оплошность, не брак."""
+    """The reviewer sometimes drops the prefix — a formatting slip, not a defect."""
     from mlcheck.catalog import load_all as load_catalog
     from mlcheck.llm import normalize_code
 
@@ -196,10 +196,11 @@ def test_unknown_llm_code_falls_back_to_other(write_nb):
 
 
 def test_llm_finding_on_rule_code_cannot_block_the_verdict():
-    """Правило — авторитет по своим кодам; модель видит только дельту и ошибается.
+    """The rule is authoritative for its own codes; the model sees only the diff and errs.
 
-    В перепрогоне v2 «ноутбук падает с ошибкой» от модели при пустом списке
-    error-выводов в самом ноутбуке стоило студенту сертификата.
+    In the v2 rerun a model claim of "the notebook fails with an error", against
+    an empty list of error outputs in the notebook itself, cost a student their
+    certificate.
     """
     from mlcheck import report
     from mlcheck.catalog import load_all as load_catalog
@@ -222,18 +223,18 @@ def test_llm_finding_on_rule_code_cannot_block_the_verdict():
 
 
 def _needs_real_run(*names: str) -> None:
-    """Пропустить, если рядом нет результатов настоящего прогона.
+    """Skip if there are no results from a real run nearby.
 
-    В открытый репозиторий out/ не входит: там ФИО, ссылки на личные
-    репозитории и рецензии. Лучше честный пропуск, чем тест, который на пустом
-    каталоге ничего не проверяет и молча зеленеет.
+    out/ is not part of the public repository: it holds names, links to private
+    repositories and reviews. An honest skip beats a test that checks nothing on
+    an empty directory and goes green anyway.
     """
     from mlcheck.config import load
 
     cfg = load()
     missing = [n for n in names if not (cfg.paths.out / n).exists()]
     if missing:
-        pytest.skip(f"нет результатов прогона: {', '.join(missing)}")
+        pytest.skip(f"no grading results: {', '.join(missing)}")
 
 
 def test_certificate_list_matches_the_verdicts(tmp_path):

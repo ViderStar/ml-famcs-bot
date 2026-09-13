@@ -1,114 +1,115 @@
-# ML FAMCS: автопроверка домашек и телеграм-бот курса
+# ML FAMCS — homework grader and course bot
 
-Два инструмента одного курса по машинному обучению в БГУ.
+Two tools for one machine-learning course at BSU.
 
-**`checker/`** проверяет домашние задания: выкачивает репозитории студентов,
-определяет тему каждого ноутбука по содержимому, гоняет правила и смысловую
-рецензию моделью, выносит вердикт и собирает отчёты.
+**`checker/`** grades homework: fetches student repositories, detects each
+notebook's topic from its content, runs deterministic rules and a model review,
+issues a verdict and builds reports.
 
-**`bot/`** отдаёт студенту его разбор в телеграме: какие темы зачтены и почему
-не зачтены остальные, разбор каждого замечания со ссылками, сильные стороны за
-курс и что подтянуть. Преподавателю — статистика по потоку, рассылки, выдача
-домашек и регистрация на следующий сезон.
+**`bot/`** delivers the review in Telegram: which topics passed, why the rest
+did not, every finding explained with links, strengths across the course and
+what to improve. For teachers: stream statistics, broadcasts, homework
+publishing and registration for the next season.
 
-За второй сезон через это прошло **929 работ 205 студентов**.
+929 submissions from 205 students went through this in season 2.
 
-## Предохранитель
+Code, comments and docs are English. What the bot says to students and the
+course content — rubrics, the error catalog, report text — stay Russian.
 
-**`SAFE_MODE` включён по умолчанию.** Пока он стоит, ни одно сообщение не может
-уйти постороннему: письмо студенту разворачивается на администратора с пометкой
-`🧪 ПЕСОЧНИЦА · ушло бы: id 12345` — видно ровно то письмо, которое ушло бы
-человеку. Попытка отредактировать чужое сообщение падает громко: перенести
-правку некуда, значит это ошибка в коде.
+## Safety catch
 
-Перехват стоит [мидлварью сессии](bot/src/mlbot/safety.py), а не диспетчера:
-через `bot.session` проходит **каждый** вызов Telegram API, включая
-`message.answer()` и `edit_text()`, мимо которых прошли бы и мидлварь
-диспетчера (она видит только входящие), и подкласс `Bot`.
+**`SAFE_MODE` is on by default.** While it is on, no message can reach an
+outsider: a letter to a student is redirected to the admin with a sandbox tag,
+so you see exactly the letter that would have gone out. Editing someone else's
+message fails loudly — there is nowhere to redirect an edit, so it is a bug.
 
-Снимается только переменной окружения и перезапуском — кнопки в интерфейсе нет
-намеренно.
+The interception is a [session middleware](bot/src/mlbot/safety.py), not a
+dispatcher one: **every** Telegram API call goes through `bot.session`,
+including `message.answer()` and `edit_text()`, which both a dispatcher
+middleware and a `Bot` subclass would miss.
 
-## Чего в репозитории нет
+Released only through the environment and a restart; there is deliberately no
+button.
 
-Курс работает с персональными данными: ФИО, почты, ссылки на личные
-репозитории, рецензии на конкретные работы. Ничего из этого сюда не входит —
-ни файлами, ни в тестах, ни в примерах.
+## What is not in this repository
 
-| Что | Где |
+The course handles personal data: names, emails, links to private repositories,
+reviews of specific work. None of it is here — not as files, not in tests, not
+in examples.
+
+| What | Where it lives |
 |---|---|
-| Отчёты по студентам (`out/`) | только на машине преподавателя |
-| Выгрузки форм регистрации и сдачи | там же |
-| Сертификаты и фотографии с вручения | там же |
-| Токен бота (`bot/.env`) | там же, права 600 |
-| Слайды и раздаточные материалы | в [репозитории курса](https://github.com/ScienceSUFAMCS/science-famcs-ml) |
+| Student reports (`out/`) | the teacher's machine only |
+| Registration and submission form exports | same |
+| Certificates and ceremony photos | same |
+| Bot token (`bot/.env`) | same, mode 600 |
+| Slides and handouts | the [course repository](https://github.com/ScienceSUFAMCS/science-famcs-ml) |
 
-Чтобы тесты не превратились в зелёную видимость, рядом лежит **синтетический
-поток**: 60 вымышленных студентов с отчётами той же формы
-([`fixtures/`](fixtures/make_fixture.py)). Тесты сами выбирают, по чему
-прогоняться: есть `out/findings` — по нему, нет — по синтетике. Те немногие
-проверки, которым нужен настоящий прогон, честно пропускаются с объяснением, а
-не делают вид, что прошли.
+So that the tests do not become green theatre, a **synthetic stream** ships
+alongside: 60 invented students with reports of the same shape
+([`fixtures/`](fixtures/make_fixture.py)). Tests pick their corpus themselves —
+real `out/findings` if it is there, synthetic otherwise. The few checks that
+genuinely need a real run skip with a stated reason instead of pretending to
+pass.
 
 ```bash
-python fixtures/make_fixture.py     # пересобрать синтетический поток
+python fixtures/make_fixture.py     # rebuild the synthetic stream
 ```
 
-## Запуск
+## Run
 
 ```bash
-cd bot && ./setup.sh                # спросит токен у @BotFather, напишет .env
+cd bot && ./setup.sh                # asks @BotFather for a token, writes .env
 docker compose up -d --build
 ```
 
-Локально, без Docker:
+Without Docker:
 
 ```bash
 cd bot && uv sync --extra dev
-uv run pytest                       # 204 теста
+uv run pytest                       # 204 tests
 DATA_ROOT=.. uv run --env-file .env mlbot
 ```
 
-Проверка домашек:
+Grading:
 
 ```bash
 cd checker && uv sync --extra dev
-uv run pytest                       # 117 тестов
-uv run mlcheck roster               # разобрать форму, проверить репозитории
-uv run mlcheck fetch                # выкачать работы
-uv run mlcheck classify             # определить тему каждого ноутбука
-uv run mlcheck report               # вердикты и отчёты
+uv run pytest                       # 117 tests
+uv run mlcheck roster               # parse the form, check repositories
+uv run mlcheck fetch                # download submissions
+uv run mlcheck classify             # detect each notebook's topic
+uv run mlcheck report               # verdicts and reports
 ```
 
-## Что внутри интересного
+## What is worth reading
 
-**[Дерево меню](bot/src/mlbot/menu/core.py)** — реестр узлов вместо
-захардкоженных «назад». Родитель объявлен один раз, `callback_data` собирается
-в одном месте, корневая клавиатура строится из детей корня по признаку
-видимости. Главное: по реестру можно пройтись, и тесты обходят узлы, которых на
-момент написания теста ещё не было.
+**[Menu tree](bot/src/mlbot/menu/core.py)** — a node registry instead of
+hardcoded "back" buttons. The parent is declared once, `callback_data` is
+assembled in one place, the root keyboard is derived from the root's children by
+visibility. The point: a registry can be walked, and tests traverse nodes that
+did not exist when the test was written.
 
-**[Стенд](bot/tests/harness.py)** гоняет настоящие апдейты через настоящий
-диспетчер и перехватывает исходящие на уровне сессии. Благодаря ему проверки
-приватности — поведенческие: бот показывает администратору всё дерево, и каждую
-найденную кнопку жмёт чужой аккаунт. Текстовые проверки («в файле есть
-`_is_admin`») этого не умеют: после переезда кода они молча проходят.
+**[Test harness](bot/tests/harness.py)** feeds real updates through the real
+dispatcher and intercepts outgoing calls at the session level. That is what
+makes the privacy checks behavioural: the bot shows an admin the whole tree, and
+a stranger's account presses every button found. Grep-based checks ("the file
+contains `_is_admin`") cannot do that — after the code moves they pass silently.
 
-**[Рассылки](bot/src/mlbot/broadcast/)**: список адресатов замораживается в
-момент подтверждения, поэтому возобновление шлёт ровно остаток и не
-перерешивает аудиторию. Составной первичный ключ делает дубль физически
-невозможным.
+**[Broadcasts](bot/src/mlbot/broadcast/)**: the recipient list is frozen at
+confirmation, so resuming sends exactly the remainder and never re-decides the
+audience. A composite primary key makes duplicates physically impossible.
 
-**[Регистрация на третий сезон](bot/src/mlbot/season3/wizard.py)** — анкета как
-данные, а не двенадцать обработчиков. Шкалы отвечаются кнопками: в числовых
-полях прошлогодней гугл-формы лежит «Бро», «1.5» и «между 2 и 3» — так ведёт
-себя поле ввода, а не отвечающие.
+**[Season 3 registration](bot/src/mlbot/season3/wizard.py)** — the form is data,
+not twelve handlers. Scales are answered with buttons: the numeric fields of
+last year's Google form contain "Бро", "1.5" and "between 2 and 3". That is how
+a free-text field behaves, not how respondents do.
 
-**[Каталог типовых ошибок](checker/catalog/)** — 149 разборов: что не так,
-почему это важно и как надо, со ссылками на Хендбук и статьи. Их же показывает
-бот в справочнике.
+**[Error catalog](checker/catalog/)** — 149 write-ups: what went wrong, why it
+matters, how it should be done, with links. The bot serves the same articles in
+its reference section.
 
-## Лицензия
+## Licence
 
-Код — как есть, для тех, кто ведёт похожий курс. Материалы курса живут в
-[отдельном репозитории](https://github.com/ScienceSUFAMCS/science-famcs-ml).
+Code as is, for anyone running a similar course. Course materials live in a
+[separate repository](https://github.com/ScienceSUFAMCS/science-famcs-ml).

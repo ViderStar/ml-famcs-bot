@@ -1,8 +1,8 @@
-"""Сборка ветки с материалами сезона.
+"""Building the season materials branch.
 
-Ветка собирается командой, а не руками, — значит её можно пересобрать после
-правки рубрик. Отсюда требование: пересборка должна давать то же самое, а
-каждый файл из materials/ обязан куда-то попасть или быть названо, почему нет.
+The branch is built by command rather than by hand, so it can be rebuilt after
+editing the rubrics. Hence the requirement: a rebuild must produce the same
+thing, and every file in materials/ must land somewhere or be named as withheld.
 """
 
 import unicodedata
@@ -15,8 +15,8 @@ from mlcheck.config import load
 
 MATERIALS = Path(__file__).resolve().parents[2] / "materials"
 
-# Слайды и раздаточные ноутбуки в этот репозиторий не входят: они опубликованы
-# в репозитории курса. Без них собирать нечего — пропускаем весь файл.
+# Slides and handout notebooks are not part of this repository: they live in the
+# course repository. Without them there is nothing to build — skip the file.
 pytestmark = pytest.mark.skipif(
     not MATERIALS.exists(), reason="нет каталога materials — он живёт в репозитории курса")
 
@@ -37,7 +37,7 @@ def test_every_lesson_becomes_a_folder_with_a_readme(built):
 
 
 def test_no_file_disappears_without_a_reason(built):
-    """Молча потерянный файл — худший исход: его отсутствия никто не заметит."""
+    """A silently lost file is the worst outcome: nobody notices it is missing."""
     out, report = built
     accounted = set()
     for path in out.rglob("*"):
@@ -50,12 +50,12 @@ def test_no_file_disappears_without_a_reason(built):
     for src in MATERIALS.iterdir():
         if src.is_file() and unicodedata.normalize("NFC", src.name) not in accounted:
             missing.append(src.name)
-    assert not missing, f"пропали без объяснения: {missing}"
+    assert not missing, f"vanished without explanation: {missing}"
     assert not report.leftovers, report.leftovers
 
 
 def test_operational_data_is_never_published(built):
-    """Репозиторий публичный, а данные сервиса самокатов — чужие."""
+    """The repository is public, and the scooter service data belongs to someone else."""
     out, report = built
     withheld = {n for n, _ in report.withheld}
     assert "ml_dataset_20k.csv" in withheld
@@ -69,7 +69,7 @@ def test_every_homework_gets_a_page(built):
     assert len(report.homeworks) >= 13
     pages = list((out / export_season.HOMEWORK_DIR).glob("*/README.md"))
     assert len(pages) == len(report.homeworks)
-    # У темы без отдельного условия страница всё равно объясняет, что проверяли.
+    # A topic with no separate assignment still gets a page explaining what was checked.
     hw05 = next(p for p in pages if "Логистическая" in p.parent.name)
     body = hw05.read_text(encoding="utf-8")
     assert "условие лежало прямо" in body and "Что проверялось" in body
@@ -85,11 +85,11 @@ def test_the_ungraded_topic_says_so(built):
 def test_mistakes_section_carries_the_whole_catalog(built):
     out, report = built
     articles = list((out / export_season.MISTAKES_DIR).rglob("*.md"))
-    assert len(articles) == report.articles + 1      # плюс README раздела
+    assert len(articles) == report.articles + 1      # plus the section README
 
 
 def test_root_readme_links_resolve(built):
-    """Ссылка в таблице, ведущая в никуда, — обычный способ сломать README."""
+    """A table link leading nowhere is the usual way to break a README."""
     out, _ = built
     import re
 

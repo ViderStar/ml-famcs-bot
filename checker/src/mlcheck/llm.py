@@ -1,14 +1,14 @@
-"""Смысловая рецензия работ моделью через Batch API.
+"""Model review of submissions through the Batch API.
 
-Два прохода:
-* discovery — открытый вопрос «что здесь не так» на выборке работ; из ответов
-  вручную собирается каталог типовых ошибок;
-* grading — все работы против закрытого списка кодов из каталога.
+Two passes:
+* discovery — the open question "what is wrong here" on a sample of work; the
+  error catalog is then assembled by hand from the answers;
+* grading — all work against the closed list of catalog codes.
 
-Запрос устроен так, чтобы префикс кэшировался: постоянная часть (роль, текст
-задания, список кодов) уходит в `system` с `cache_control`, переменная —
-ноутбук студента — в сообщение пользователя. Разных префиксов ровно столько,
-сколько домашек.
+The request is shaped so the prefix is cacheable: the constant part (role,
+assignment text, code list) goes into `system` with `cache_control`, while the
+variable part — the student's notebook — goes into the user message. There are
+exactly as many distinct prefixes as there are homework topics.
 """
 
 from __future__ import annotations
@@ -131,11 +131,11 @@ def grading_schema(codes: list[str], check_ids: list[str]) -> dict:
 
 
 def normalize_code(code: str, hw: str, catalog: dict[str, Article]) -> str | None:
-    """Приводит код находки к каноничному виду.
+    """Normalises a finding code.
 
-    Проверяющий иногда теряет префикс и пишет `conclusions_in_code_comments`
-    вместо `common.conclusions_in_code_comments`. Это форматная оплошность,
-    а не повод браковать разбор целиком.
+    The reviewer sometimes drops the prefix and writes
+    `conclusions_in_code_comments` instead of the qualified code. That is a
+    formatting slip, not a reason to reject the whole review.
     """
     code = (code or "").strip()
     if not code:
@@ -149,7 +149,7 @@ def normalize_code(code: str, hw: str, catalog: dict[str, Article]) -> str | Non
 
 
 def _codes_for(rubric: Rubric, catalog: dict[str, Article]) -> list[str]:
-    """Коды, доступные модели по этой домашке: общие плюс её собственные."""
+    """Codes available to the model for this homework: the common ones plus its own."""
     return sorted(
         c for c in catalog
         if c.startswith("common.") or c.startswith(f"{rubric.id}.")
@@ -192,7 +192,7 @@ class Item:
 
 def build_params(item: Item, rubric: Rubric, catalog: dict[str, Article],
                  cfg: Config, mode: str) -> dict:
-    max_chars = cfg.llm["max_notebook_tokens"] * 3   # ~3 символа на токен для смеси кода и русского
+    max_chars = cfg.llm["max_notebook_tokens"] * 3   # ~3 characters per token for a mix of code and Russian
     text, truncated = to_llm_text(item.notebook, max_chars)
     note = "\n\n(Ноутбук обрезан по длине — оценивай по доступной части.)" if truncated else ""
 
@@ -219,7 +219,7 @@ def build_params(item: Item, rubric: Rubric, catalog: dict[str, Article],
 
 
 def estimate(items: list[Item], cfg: Config) -> dict:
-    """Грубая оценка объёма до запуска: символы делим на 3."""
+    """A rough size estimate before the run: characters divided by three."""
     max_chars = cfg.llm["max_notebook_tokens"] * 3
     total_in = 0
     truncated = 0
@@ -236,8 +236,8 @@ def estimate(items: list[Item], cfg: Config) -> dict:
     }
 
 
-# Три режима — три пары каталогов. Раньше соответствие было размазано по
-# тернарникам в cli.py; при добавлении третьего режима это перестало работать.
+# Three modes, three pairs of directories. The mapping used to be smeared across
+# ternaries in cli.py; adding a third mode broke that.
 _INPUT = {"grading": "llm_input", "discovery": "llm_input_discovery",
           "student": "llm_input_student"}
 _RESULTS = {"grading": "llm", "discovery": "llm_discovery", "student": "llm_student"}
@@ -271,19 +271,21 @@ def load_results(cfg: Config | None = None, mode: str = "grading") -> dict[str, 
         try:
             out[p.stem.replace("__", "|")] = json.loads(p.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
-            # Разбор пишет субагент, и один раз он вставил управляющий символ внутрь
-            # строки. Ронять сборку всех 205 отчётов из-за одного файла нельзя:
-            # работа останется с проверкой по правилам, а файл поймает `llm verify`.
+        # A subagent writes the review, and once it put a control character
+        # inside a string. Crashing the build of every report over one file is
+        # not acceptable: that submission keeps its rule-based check, and
+        # `llm verify` catches the file.
             print(f"пропущен нечитаемый разбор {p.name}: {exc}", file=sys.stderr)
     return out
 
 
-# --- портрет студента за курс -------------------------------------------------------
+# --- the student's course portrait ------------------------------------------------------
 #
-# Третий режим. На вход не ноутбук, а дайджест всех проверок одного студента;
-# на выход — сильные стороны за курс и направления роста по ML/DS-методологии
-# со ссылками. Ссылки модель выдумывать не может: ей передаётся закрытый список
-# из каталога, и всё вне списка отбрасывается и при verify, и при сборке отчёта.
+# The third mode. Input is not a notebook but a digest of every check for one
+# student; output is their strengths across the course and growth directions in
+# ML/DS methodology, with links. The model cannot invent links: it receives a
+# closed list from the catalog, and anything outside it is dropped both at verify
+# time and when the report is built.
 
 HANDBOOK_ROOT = "https://education.yandex.ru/handbook/ml"
 
@@ -341,7 +343,7 @@ STUDENT_LIMITS = {"portrait": 1200, "why": 500, "next_steps": 600, "title": 120,
 
 
 def external_links_by_topic(catalog: dict[str, Article]) -> dict[str, list[tuple[str, str]]]:
-    """Ссылки каталога по темам: hwNN → [(название, url)], плюс common."""
+    """Catalog links by topic: hwNN → [(title, url)], plus common."""
     out: dict[str, dict[str, str]] = {}
     for code, art in catalog.items():
         topic = code.split(".", 1)[0]
@@ -372,10 +374,10 @@ def student_prompt(rubrics: dict[str, Rubric], catalog: dict[str, Article]) -> s
 
 def student_digest(report: dict, rubrics: dict[str, Rubric], catalog: dict[str, Article],
                    cfg: Config) -> str:
-    """Дайджест по итоговому JSON студента (`out/findings/<key>.json`).
+    """A digest built from the student's final JSON (`out/findings/<key>.json`).
 
-    Источник — тот же файл, что читает бот: не гоняем правила повторно и не
-    расходимся с ним. ФИО в дайджест не попадает — модели оно не нужно.
+    The source is the same file the bot reads: no rerunning the rules and no
+    drifting from it. The name is left out — the model does not need it.
     """
     from .report import points_needed_for
 
@@ -423,7 +425,7 @@ def student_digest(report: dict, rubrics: dict[str, Rubric], catalog: dict[str, 
 
 def validate_student(payload: dict, rubrics: dict[str, Rubric], catalog: dict[str, Article],
                      allowed: set[str]) -> list[str]:
-    """Список претензий к ответу. Пустой список — ответ годный."""
+    """A list of complaints about the answer. An empty list means it is fine."""
     errors = [f"нет поля {k}" for k in STUDENT_REQUIRED if k not in payload]
     if errors:
         return errors
@@ -442,8 +444,8 @@ def validate_student(payload: dict, rubrics: dict[str, Rubric], catalog: dict[st
         if topic not in rubrics and topic != "common":
             errors.append(f"growth[{i}]: тема вне рубрик: {topic!r}")
         for code in g.get("codes", []) or []:
-            # `hwNN.other` — замечание модели вне каталога; в дайджесте оно есть,
-            # значит ссылаться на него законно.
+    # `hwNN.other` is a model finding outside the catalog; it is present in the
+    # digest, so referring to it is legitimate.
             if code not in catalog and not code.endswith(".other"):
                 errors.append(f"growth[{i}]: код вне каталога: {code}")
         for link in g.get("links", []) or []:
@@ -461,11 +463,11 @@ def validate_student(payload: dict, rubrics: dict[str, Rubric], catalog: dict[st
 
 def sanitize_student(payload: dict, rubrics: dict[str, Rubric], catalog: dict[str, Article],
                      allowed: set[str]) -> dict | None:
-    """Приводит ответ к безопасному виду для отчёта и бота.
+    """Brings the answer into a safe shape for the report and the bot.
 
-    Вторая линия защиты после verify: чужие ссылки и неизвестные темы
-    выбрасываются, длины обрезаются. Выдуманный URL до студента не дойдёт,
-    даже если verify забыли запустить.
+    The second line of defence after verify: foreign links and unknown topics are
+    dropped, lengths are trimmed. An invented URL will not reach a student even
+    if verify was never run.
     """
     if any(k not in payload for k in STUDENT_REQUIRED):
         return None

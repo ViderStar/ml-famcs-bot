@@ -1,4 +1,4 @@
-"""Режим «портрет студента»: дайджест, промпт, проверка и санация ответа."""
+"""Student portrait mode: digest, prompt, validation and answer sanitisation."""
 
 import json
 
@@ -18,14 +18,14 @@ def env():
 
 
 def _report(cfg):
-    """Любой отчёт настоящего прогона.
+    """Any report from a real run.
 
-    В открытый репозиторий out/ не входит — там ФИО и рецензии, — поэтому без
-    него тест честно пропускается, а не зеленеет на пустом месте.
+    out/ is not part of the public repository — it holds names and reviews — so
+    without it the test skips honestly rather than going green on nothing.
     """
     files = sorted(cfg.paths.findings.glob("*.json"))
     if not files:
-        pytest.skip("нет результатов прогона: out/findings пуст")
+        pytest.skip("no grading results: out/findings is empty")
     return json.loads(files[0].read_text(encoding="utf-8"))
 
 
@@ -81,7 +81,7 @@ def test_validate_accepts_good_and_rejects_bad(env):
     bad = _good(); bad["growth"][0]["codes"] = ["hw04.nonexistent"]
     assert any("код вне каталога" in e for e in llm.validate_student(bad, rubrics, catalog, allowed))
 
-    # «hwNN.other» — замечание вне каталога, но оно есть в дайджесте: допустимо.
+    # "hwNN.other" is a finding outside the catalog, but it is in the digest: allowed.
     ok = _good(); ok["growth"][0]["codes"] = ["hw04.other"]
     assert llm.validate_student(ok, rubrics, catalog, allowed) == []
     assert llm.sanitize_student(ok, rubrics, catalog, allowed)["growth"][0]["codes"] == ["hw04.other"]
@@ -102,7 +102,7 @@ def test_sanitize_strips_foreign_links_but_keeps_the_rest(env):
 
 
 def test_to_json_carries_portrait_field(env):
-    """Поле есть всегда — None до прогона, dict после. Бот обязан уметь без него."""
+    """The field is always present — None before the run, a dict after. The bot must cope without it."""
     from mlcheck.report import StudentReport, to_json
     cfg, *_ = env
     rep = StudentReport(key="k", fio="Ф И", slug=None, status="ok")
@@ -112,11 +112,11 @@ def test_to_json_carries_portrait_field(env):
 
 
 def test_broken_review_is_skipped_not_fatal(tmp_path, monkeypatch, env):
-    """Один битый JSON от субагента не должен ронять сборку всех отчётов.
+    """One broken JSON from a subagent must not crash the build of every report.
 
-    Случай живой: агент записал управляющий символ внутрь строки, и `report`
-    падал JSONDecodeError, не называя виновника. Теперь файл пропускается,
-    а ловит его `mlcheck llm verify`.
+    A real case: an agent wrote a control character inside a string and `report`
+    died with a JSONDecodeError without naming the culprit. Now the file is
+    skipped and `mlcheck llm verify` catches it.
     """
     cfg, *_ = env
     good = {"checks": [], "findings": [], "strengths": "ок", "summary": "ок"}

@@ -1,12 +1,12 @@
-"""Админка деревом. Четыре группы вместо одиннадцати кнопок в столбик.
+"""The admin panel as a tree. Four groups instead of eleven buttons in a column.
 
-Тела экранов переехали из `handlers/admin.py` почти дословно: они и раньше были
-устроены как «собрать строки → нарезать → отправить». Побочная польза от
-переезда — у длинных экранов впервые появилось «назад».
+Screen bodies moved from `handlers/admin.py` almost verbatim: they were already
+shaped as "collect lines, split, send". A side benefit of the move — long
+screens finally have a "back" button.
 
-Права здесь — свойство узла (`visible=ADMIN`), и `core.show` проверяет его до
-вызова рендерера. Обработчики, у которых экрана нет (диалоги, решения по
-заявкам), остались в `handlers/admin.py` под фильтром `AdminOnly`.
+Rights here are a node property (`visible=ADMIN`), and `core.show` checks it
+before calling the renderer. Handlers with no screen of their own (dialogues,
+claim decisions) stayed in `handlers/admin.py` behind the `AdminOnly` filter.
 """
 
 from __future__ import annotations
@@ -27,17 +27,17 @@ from .core import ADMIN, Ctx, Screen, cb, node
 @node("adm", "Админка", label="🛠 Админка", visible=ADMIN, order=9,
       kids=("a.stat", "a.ppl", "a.cast", "a.s3", "a.dev"))
 async def root(ctx: Ctx) -> Screen:
-    """Заголовок сообщает режим: в песочнице студентам ничего не уходит.
+    """The heading states the mode: in the sandbox nothing reaches students.
 
-    Режим вычисляется здесь, а не запоминается: иначе экран, открытый до
-    перезапуска, врал бы про боевой режим после него.
+    The mode is computed here rather than remembered: otherwise a screen opened
+    before a restart would lie about live mode afterwards.
     """
     return Screen(text=texts.ADMIN_ROOT.format(
         mode="🧪 <b>ПЕСОЧНИЦА</b> · сообщения студентам не уходят"
         if ctx.cfg.safe_mode else "🔴 <b>БОЕВОЙ РЕЖИМ</b> · сообщения уходят студентам"))
 
 
-# --- 📈 аналитика ----------------------------------------------------------------
+# --- analytics -------------------------------------------------------------------
 
 @node("a.stat", "Аналитика", "adm", label="📈 Аналитика", visible=ADMIN,
       kids=("a.stat.sum", "a.stat.hw", "a.stat.use", "a.stat.att"))
@@ -87,7 +87,7 @@ async def by_topic(ctx: Ctx) -> Screen:
 
 @node("a.stat.use", "Что читают", "a.stat", label="📖 Что читают", visible=ADMIN)
 async def usage(ctx: Ctx) -> Screen:
-    """Демо-нажатия сюда не попадают: `store` помечает их при записи."""
+    """Demo clicks do not land here: `store` flags them on write."""
     course, store = ctx.course, ctx.store
     totals = await store.event_totals()
 
@@ -117,7 +117,7 @@ async def attention(ctx: Ctx) -> Screen:
     return Screen(text=to_html(ctx.course.attention))
 
 
-# --- 👥 люди ----------------------------------------------------------------------
+# --- people ------------------------------------------------------------------------
 
 @node("a.ppl", "Люди", "adm", label="👥 Люди", visible=ADMIN,
       kids=("a.ppl.find", "a.ppl.cov", "a.ppl.tg", "a.ppl.claims", "a.ppl.sup"))
@@ -128,7 +128,7 @@ async def people(ctx: Ctx) -> Screen:
 
 @node("a.ppl.find", "Найти студента", "a.ppl", label="🔍 Найти студента", visible=ADMIN)
 async def find(ctx: Ctx) -> Screen:
-    """Ответ ловит `handlers/admin.py` — узел только задаёт вопрос."""
+    """The answer is caught by `handlers/admin.py` — this node only asks."""
     from ..handlers.admin import Admin
     if ctx.state is not None:
         await ctx.state.set_state(Admin.finding_student)
@@ -154,10 +154,10 @@ async def coverage(ctx: Ctx) -> Screen:
 
 @node("a.ppl.tg", "Телеграмы", "a.ppl", label="📇 Телеграмы", visible=ADMIN)
 async def telegrams(ctx: Ctx) -> Screen:
-    """ФИО ↔ телеграм: из формы регистрации плюс закреплённое ботом.
+    """Name to telegram: from the registration form plus what the bot confirmed.
 
-    Форма сдачи username не спрашивала, поэтому к следующему сезону такая
-    таблица — единственный способ не собирать его заново.
+    The submission form never asked for a username, so by the next season this
+    table is the only way not to collect them all over again.
     """
     from mlcheck.telegram import read_map
 
@@ -184,13 +184,13 @@ async def telegrams(ctx: Ctx) -> Screen:
 @node("a.ppl.claims", "Заявки на доступ", "a.ppl", label="🔑 Заявки на доступ",
       visible=ADMIN)
 async def claims(ctx: Ctx) -> Screen:
-    """Заявки на записи с закреплённым username: кто-то менял телеграм — или не он."""
+    """Claims on records with a recorded username: someone changed telegram — or it is not them."""
     from ..keyboards import claim_card
 
     rows = await ctx.store.pending_claims()
     if not rows:
         return Screen(alert="Открытых заявок нет")
-    # Каждую заявку — отдельным сообщением: у неё свои кнопки решения.
+    # Each claim as its own message: it carries its own decision buttons.
     out = [f"🔑 <b>Заявок на доступ: {len(rows)}</b>"]
     for c in rows:
         st = ctx.course.students.get(c["student_key"])
@@ -210,10 +210,10 @@ async def claims(ctx: Ctx) -> Screen:
 
 @node("a.ppl.sup", "Обращения", "a.ppl", label="✉️ Обращения", visible=ADMIN)
 async def support_list(ctx: Ctx) -> Screen:
-    """У каждого обращения есть кнопка ответа.
+    """Every ticket has a reply button.
 
-    Раньше флаг `answered` только читался: пометить обращение отвеченным было
-    нечем, и список открытых рос вечно, даже когда преподаватель отвечал в личке.
+    `answered` used to be read-only: there was no way to mark a ticket answered,
+    and the open list grew forever even when the teacher replied in private.
     """
     rows = await ctx.store.open_support()
     if not rows:
@@ -240,7 +240,7 @@ async def support_reply(ctx: Ctx) -> Screen:
 
 @node("a.dev.health", "Здоровье бота", "a.dev", label="🩺 Здоровье бота", visible=ADMIN)
 async def health(ctx: Ctx) -> Screen:
-    """Та же диагностика, что `python -m mlbot.selfcheck`, но прямо в чате."""
+    """The same diagnostics as `python -m mlbot.selfcheck`, but right in the chat."""
     course, cfg = ctx.course, ctx.cfg
     from . import core as _core
 
@@ -274,7 +274,7 @@ async def health(ctx: Ctx) -> Screen:
     return Screen(text="\n".join(lines))
 
 
-# --- 🛠 отладка -------------------------------------------------------------------
+# --- debug --------------------------------------------------------------------------
 
 @node("a.dev", "Отладка", "adm", label="🛠 Отладка", visible=ADMIN,
       kids=("a.dev.as", "a.dev.demo", "a.dev.health", "a.dev.reload"))
@@ -291,11 +291,11 @@ async def as_student(ctx: Ctx) -> Screen:
 
 
 def _demo_students(ctx: Ctx):
-    """Подпись сразу говорит, какое состояние экранов проверяет эта запись."""
+    """The caption says at once which screen state this record exercises."""
     if ctx.demo is None:
         return []
     out = []
-    # Порядок — от самого полного экрана к самому пустому.
+    # Order runs from the fullest screen to the emptiest.
     for st in sorted(ctx.demo.students.values(), key=lambda s: (not s.ok, -s.passed)):
         if not st.ok:
             mark = "🚫 репозиторий недоступен"
@@ -313,11 +313,11 @@ def _demo_students(ctx: Ctx):
 @node("a.dev.demo", "Вымышленные студенты", "a.dev", label="🧪 Вымышленные студенты",
       visible=ADMIN, kids=_demo_students)
 async def demo_list(ctx: Ctx) -> Screen:
-    """Четыре выдуманные записи закрывают все состояния экранов.
+    """Four invented records cover every screen state.
 
-    Они лежат в отдельном каталоге и своём объекте `Course`, поэтому не входят
-    ни в медиану, ни в число сертификатов, а их нажатия помечаются в базе и не
-    едут в «Что читают».
+    They live in a separate directory and their own `Course` object, so they are
+    part of neither the median nor the certificate count, and their clicks are
+    flagged in the database and stay out of "what people read".
     """
     if ctx.demo is None:
         return Screen(text=texts.DEMO_MISSING)
@@ -354,7 +354,7 @@ async def reload(ctx: Ctx) -> Screen:
                                                 articles=len(ctx.course.catalog)))
 
 
-# --- 📣 рассылки ------------------------------------------------------------------
+# --- broadcasts ---------------------------------------------------------------------
 
 def _audience_buttons(ctx: Ctx):
     from ..broadcast import audiences
@@ -385,7 +385,7 @@ async def cast_new(ctx: Ctx) -> Screen:
 
 @node("a.cast.to", "Аудитория", "a.cast.new", visible=ADMIN)
 async def cast_to(ctx: Ctx) -> Screen:
-    """Считаем аудиторию сразу: видеть «кому» надо до того, как писать текст."""
+    """The audience is counted straight away: you need to see "to whom" before writing."""
     from ..broadcast import audiences
     from ..handlers.admin import Admin
 
@@ -429,7 +429,7 @@ async def cast_log(ctx: Ctx) -> Screen:
 
 @node("a.cast.go", "Отправить", "a.cast", visible=ADMIN)
 async def cast_go(ctx: Ctx) -> Screen:
-    """Запуск. Переход в «отправляется» атомарный, поэтому двойной клик безвреден."""
+    """Launch. The move to "sending" is atomic, so a double click is harmless."""
     import asyncio
 
     from ..broadcast import sender
@@ -457,8 +457,8 @@ async def cast_go(ctx: Ctx) -> Screen:
         except Exception:
             pass
 
-    # Отправка — фоновой задачей, а не в обработчике нажатия: иначе телеграм
-    # отвалится по таймауту колбэка на первой же сотне писем.
+    # Sending runs as a background task, not inside the press handler: otherwise
+    # Telegram times the callback out on the first hundred letters.
     asyncio.create_task(sender.run(ctx.bot, ctx.store, cast_id, progress))
     return Screen(alert="Запустил")
 
@@ -472,7 +472,7 @@ async def cast_no(ctx: Ctx) -> Screen:
     return Screen(alert="Отменил" if ok else "Уже не отменить")
 
 
-# --- 🚀 третий сезон ----------------------------------------------------------------
+# --- season 3 --------------------------------------------------------------------------
 
 @node("a.s3", "Третий сезон", "adm", label="🚀 Третий сезон", visible=ADMIN,
       kids=("a.s3.apps", "a.s3.trk", "a.s3.hw", "a.s3.sync"))
@@ -576,7 +576,7 @@ def _new_hw_tracks(ctx: Ctx):
 @node("a.s3.new", "Новая домашка", "a.s3.hw", label="➕ Новая домашка", visible=ADMIN,
       kids=_new_hw_tracks)
 async def s3_new_homework(ctx: Ctx) -> Screen:
-    """Направления выбираются галочками; получатели считаются сразу."""
+    """Tracks are picked with checkboxes; the recipient count is computed at once."""
     chosen = await _chosen_tracks(ctx)
     who = await ctx.store.recipients_for_tracks(list(chosen))
     return Screen(text=texts.A_S3_HW_NEW.format(
@@ -599,7 +599,7 @@ async def s3_toggle_track(ctx: Ctx) -> Screen:
     chosen.symmetric_difference_update({ctx.arg})
     if ctx.state is not None:
         await ctx.state.update_data(hw_tracks=sorted(chosen))
-    # Перерисовываем тот же экран: галочки видны в подписях кнопок.
+    # Redraw the same screen: the ticks live in the button captions.
     from . import core as _core
     return await _core.NODES["a.s3.new"].render(ctx)
 
@@ -614,7 +614,7 @@ async def s3_ask_text(ctx: Ctx) -> Screen:
 
 @node("a.s3.pub", "Выдать", "a.s3.hw", visible=ADMIN)
 async def s3_publish(ctx: Ctx) -> Screen:
-    """Выдача возобновляемая: получатели заморожены, отправленные помечены."""
+    """Publishing is resumable: recipients are frozen and the sent ones are marked."""
     import asyncio
 
     from ..broadcast import sender
@@ -651,10 +651,10 @@ async def s3_publish(ctx: Ctx) -> Screen:
 
 @node("a.s3.sync", "Синхронизация", "a.s3", label="🔄 Синхронизация", visible=ADMIN)
 async def s3_sync(ctx: Ctx) -> Screen:
-    """Что разошлось между своей базой, файлом и Notion.
+    """What diverged between our database, the file and Notion.
 
-    Расхождения показываем, но ничего не удаляем: два писателя в одну модель
-    теряют данные тихо, поэтому обратного импорта здесь нет и не будет.
+    Differences are shown but nothing is deleted: two writers into one model
+    lose data silently, so there is no reverse import here and there will not be.
     """
     health = await ctx.store.outbox_health()
     flags = await ctx.store.open_flags()

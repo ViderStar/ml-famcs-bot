@@ -1,7 +1,7 @@
-"""Отправка, ожидание и разбор Batch API.
+"""Submitting to, waiting on and parsing the Batch API.
 
-Batch даёт половинную цену и до 24 часов на выполнение — для проверки курса
-это подходит идеально: спешить некуда, а работ больше тысячи.
+Batch gives half price and up to 24 hours to run — ideal for grading a course:
+there is no hurry and there are more than a thousand submissions.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ def client():
 
 
 def submit(requests: list[dict], cfg: Config, mode: str) -> str:
-    """requests: [{custom_id, params}]. Возвращает id батча."""
+    """requests: [{custom_id, params}]. Returns the batch id."""
     from anthropic.types.message_create_params import MessageCreateParamsNonStreaming
     from anthropic.types.messages.batch_create_params import Request
 
@@ -59,7 +59,7 @@ def wait(batch_id: str, poll_sec: int = 60, on_tick=None) -> None:
 
 
 def collect(batch_id: str, cfg: Config, mode: str) -> dict:
-    """Скачивает результаты. Возвращает статистику и складывает ответы на диск."""
+    """Downloads the results. Returns statistics and writes the answers to disk."""
     from . import llm
 
     cl = client()

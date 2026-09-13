@@ -1,6 +1,6 @@
-"""Тонкая обёртка над gh CLI.
+"""A thin wrapper around the gh CLI.
 
-Токен берётся из уже настроенной авторизации gh, в коде и конфигах его нет.
+The token comes from gh's existing authentication; it is in no code or config.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ class GhError(RuntimeError):
 
 
 def api(endpoint: str, *, jq: str | None = None, raw: bool = False) -> Any:
-    """Вызов GitHub API. Возвращает разобранный JSON, строку (jq) или bytes (raw)."""
+    """A GitHub API call. Returns parsed JSON, a string (jq) or bytes (raw)."""
     cmd = ["gh", "api", endpoint]
     if raw:
         cmd += ["-H", "Accept: application/vnd.github.raw"]
@@ -35,7 +35,7 @@ def api(endpoint: str, *, jq: str | None = None, raw: bool = False) -> Any:
 
 
 def try_api(endpoint: str, **kw: Any) -> Any | None:
-    """То же, но None вместо исключения — для проверок «существует ли»."""
+    """The same, but None instead of an exception — for existence checks."""
     try:
         return api(endpoint, **kw)
     except GhError:

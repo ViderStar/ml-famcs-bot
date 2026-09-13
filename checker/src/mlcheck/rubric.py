@@ -1,4 +1,4 @@
-"""Загрузка рубрик: описание домашки, сигнатура для классификации, пункты проверки."""
+"""Loading rubrics: the homework description, the classification signature, the check items."""
 
 from __future__ import annotations
 
@@ -45,14 +45,14 @@ class Rubric:
     task_path: Path | None = None
     template_name: str | None = None
     leakage_exempt: tuple[str, ...] = ()
-    # delta — по дописанному студентом (по умолчанию для заготовок),
-    # full — по всему ноутбуку (для hw01 и hw07, розданных уже решёнными).
+    # delta — against the student's additions (the default for templates),
+    # full — against the whole notebook (hw01 and hw07, handed out already solved).
     check_scope: str = "delta"
-    # False — тема показывается в отчёте, но в знаменателе сертификата не участвует
-    # (по деревьям решений задания не выдавалось).
+    # False — the topic appears in the report but stays out of the certificate
+    # denominator (no decision-tree assignment was ever issued).
     graded: bool = True
-    # Прочие раздатки по теме, не являющиеся основной заготовкой:
-    # например, ноутбук практики с лекции.
+    # Other handouts for the topic that are not the main template:
+    # a lecture practice notebook, say.
     extra_templates: tuple[str, ...] = ()
 
     @property
@@ -121,7 +121,7 @@ def load_all(cfg: Config | None = None) -> dict[str, Rubric]:
 
 @lru_cache(maxsize=8)
 def load_dir(path: Path) -> dict[str, Rubric]:
-    """Рубрики из произвольного каталога — для тех, у кого своя раскладка файлов."""
+    """Rubrics from an arbitrary directory — for anyone with a different layout."""
     return {r.id: r for r in (_load_one(p) for p in sorted(Path(path).glob("hw*.yaml")))}
 
 

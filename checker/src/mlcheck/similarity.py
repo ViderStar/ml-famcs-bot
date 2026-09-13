@@ -1,12 +1,13 @@
-"""Поиск заимствований.
+"""Looking for copied work.
 
-Главная тонкость: заготовки идентичны у всех по построению. Студент, не тронувший
-`svm_practice_student.ipynb`, побайтово совпадёт с полусотней других. Поэтому
-сравнивается не файл, а **дельта поверх эталона** — только то, что дописал студент.
+The key subtlety: handouts are identical for everyone by construction. A student
+who never touched `svm_practice_student.ipynb` matches fifty others byte for
+byte. So what is compared is not the file but the **diff over the template** —
+only what the student added.
 
-Два уровня:
-* точное совпадение дельты — повод посмотреть даты и решить, кто у кого;
-* близкое сходство по шинглам токенов — просто цифра для сводной таблицы.
+Two levels:
+* an exact diff match — a reason to look at the dates and decide who copied whom;
+* close similarity by token shingles — just a number for the summary table.
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from .templates import template_cell_bodies
 
 _WS = re.compile(r"\s+")
 
-# Имена, по которым нормализация не проходит: это API, а не выбор студента.
+# Names exempt from normalisation: these are API, not the student's choice.
 _KEEP = {
     "fit", "predict", "transform", "fit_transform", "score", "self", "np", "pd", "plt",
     "sns", "px", "sklearn", "train_test_split", "DataFrame", "print", "range", "len",
@@ -35,7 +36,7 @@ _KEEP = {
 
 
 def cell_bodies(nb: Notebook) -> list[tuple[str, str]]:
-    """Пары (нормализованное тело, исходный текст) по всем ячейкам."""
+    """Pairs of (normalised body, original text) across all cells."""
     out = []
     for c in nb.cells:
         body = _WS.sub("", c.source)
@@ -49,14 +50,14 @@ def corpus_boilerplate(
     min_students: int,
     min_share: float = 0.15,
 ) -> frozenset[str]:
-    """Ячейки, дословно повторяющиеся у многих, — это раздатка, а не работа студента.
+    """Cells repeated verbatim by many people are handout, not the student's work.
 
-    Нужно потому, что не все заготовки сохранились в materials: например,
-    `lin_reg_practice.ipynb` раздавали на лекции, и без этой поправки полтора
-    десятка студентов выглядели бы копиями друг друга.
+    Needed because not every template survived in materials: some were handed out
+    in the lecture, and without this correction a dozen students would look like
+    copies of one another.
 
-    Порог одновременно абсолютный и долевой: группа из пяти списавших на потоке
-    в полсотни человек — это ещё не раздатка, и стирать её нельзя.
+    The threshold is both absolute and proportional: five people copying in a
+    stream of fifty is not handout, and must not be erased.
     """
     counts: dict[str, int] = {}
     for bodies in cells_by_student.values():
@@ -69,7 +70,7 @@ def corpus_boilerplate(
 def delta_cells(
     nb: Notebook, template_name: str | None, boilerplate: frozenset[str] = frozenset()
 ) -> list[str]:
-    """Ячейки, которых нет ни в эталоне, ни в общей для потока раздатке."""
+    """Cells present neither in the template nor in the stream-wide handout."""
     tpl = template_cell_bodies(template_name)
     return [src for body, src in cell_bodies(nb) if body not in tpl and body not in boilerplate]
 
@@ -77,20 +78,20 @@ def delta_cells(
 def delta_fingerprint(
     nb: Notebook, template_name: str | None, boilerplate: frozenset[str] = frozenset()
 ) -> str | None:
-    """Хэш дописанного студентом. None, если он не тронул заготовку."""
+    """A hash of what the student added. None if they never touched the template."""
     cells = delta_cells(nb, template_name, boilerplate)
     if not cells:
         return None
     blob = "\n".join(sorted(_WS.sub("", c) for c in cells))
-    if len(blob) < 120:      # слишком мало, чтобы говорить о совпадении
+    if len(blob) < 120:      # too little to call it a match
         return None
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
 def normalize_tokens(code: str) -> list[str]:
-    """Токены с обезличенными именами, числами и строками.
+    """Tokens with names, numbers and strings anonymised.
 
-    Переименование переменных перестаёт скрывать копию.
+    Renaming variables stops hiding a copy.
     """
     out: list[str] = []
     try:
@@ -107,7 +108,7 @@ def normalize_tokens(code: str) -> list[str]:
             else:
                 out.append(tok.string)
     except (tokenize.TokenError, IndentationError, SyntaxError):
-        # В ноутбуках попадаются магии и оборванный код — падать нельзя.
+        # Notebooks contain magics and truncated code — crashing is not an option.
         out = [w if w in _KEEP else "V" for w in re.findall(r"\w+|\S", code)]
     return out
 
@@ -126,13 +127,13 @@ def jaccard(a: set[str], b: set[str]) -> float:
 
 @dataclass
 class Work:
-    key: str            # ключ студента
+    key: str            # student key
     fio: str
     hw: str
-    rel: str            # путь ноутбука в репозитории
+    rel: str            # notebook path inside the repository
     fingerprint: str | None
     shingles: set[str] = field(default_factory=set)
-    n_tokens: int = 0          # объём дописанного: на коротких дельтах сходство пусто
+    n_tokens: int = 0          # size of the addition: on short diffs similarity is meaningless
     added_at: str | None = None
 
 
@@ -165,7 +166,7 @@ def build_work(key: str, fio: str, hw: str, nb: Notebook, template_name: str | N
 
 
 def find_pairs(works: list[Work], threshold: float, min_tokens: int = 0) -> list[Pair]:
-    """Пары внутри одной темы: сначала точные совпадения, затем близкие."""
+    """Pairs within one topic: exact matches first, then close ones."""
     pairs: list[Pair] = []
     by_hw: dict[str, list[Work]] = {}
     for w in works:
@@ -192,8 +193,8 @@ def find_pairs(works: list[Work], threshold: float, min_tokens: int = 0) -> list
                 if (a.key, b.key) in exact_keys or (b.key, a.key) in exact_keys:
                     continue
                 if min(a.n_tokens, b.n_tokens) < min_tokens:
-                    # Совпадение на десятке токенов ничего не доказывает:
-                    # правильную сигмоиду все пишут одинаково.
+            # A match on a dozen tokens proves nothing: everyone writes the
+            # correct sigmoid the same way.
                     continue
                 sim = jaccard(a.shingles, b.shingles)
                 if sim >= threshold:
@@ -202,7 +203,7 @@ def find_pairs(works: list[Work], threshold: float, min_tokens: int = 0) -> list
 
 
 def first_commit_date(repo: Path, rel: str) -> str | None:
-    """Дата коммита, которым файл появился. Требует полной истории."""
+    """The date of the commit that introduced the file. Needs full history."""
     proc = subprocess.run(
         ["git", "-C", str(repo), "log", "--diff-filter=A", "--follow",
          "--format=%aI", "--", rel],
@@ -215,7 +216,7 @@ def first_commit_date(repo: Path, rel: str) -> str | None:
 
 
 def unshallow(repo: Path) -> bool:
-    """Дотягивает историю: клонировали поверхностно, а для дат нужны коммиты."""
+    """Deepens the history: the clone was shallow, and dates need commits."""
     if not (repo / ".git" / "shallow").exists():
         return True
     proc = subprocess.run(

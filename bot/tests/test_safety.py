@@ -1,8 +1,9 @@
-"""Предохранитель: в песочнице сообщение не может уйти настоящему студенту.
+"""The safety catch: in the sandbox a message cannot reach a real student.
 
-Второй сезон закончился, у бота живые привязки, и цена ошибки — рассылка мусора
-полусотне человек. Поэтому проверяем не «функция вызвалась», а свойство: при
-включённом режиме ни один вызов Telegram API с чужим chat_id не проходит насквозь.
+Season 2 is over, the bot holds live bindings, and the price of a mistake is
+mailing junk to fifty people. So the test checks a property, not that "the
+function was called": with the mode on, no Telegram API call with a foreign
+chat_id passes through.
 """
 
 from dataclasses import replace
@@ -23,7 +24,7 @@ def safe(cfg):
 
 
 async def call(mw, method):
-    """Прогоняет метод через мидлварь, возвращая то, что дошло до транспорта."""
+    """Runs a method through the middleware and returns what reached the transport."""
     seen = []
 
     async def transport(bot, m):
@@ -34,7 +35,7 @@ async def call(mw, method):
     return seen[0] if seen else None
 
 
-# --- умолчание: забыть переменную должно быть безопасно ---------------------------
+# --- the default: forgetting the variable must be safe ----------------------------
 
 def test_safe_mode_is_on_by_default():
     assert load({"BOT_TOKEN": "x"}).safe_mode is True
@@ -50,7 +51,7 @@ def test_anything_else_keeps_it_on(raw):
     assert load({"BOT_TOKEN": "x", "SAFE_MODE": raw}).safe_mode is True
 
 
-# --- что проходит, что перехватывается --------------------------------------------
+# --- what passes and what is intercepted ------------------------------------------
 
 async def test_message_to_admin_passes_untouched(safe):
     got = await call(safe, SendMessage(chat_id=ADMIN, text="привет"))
@@ -60,7 +61,7 @@ async def test_message_to_admin_passes_untouched(safe):
 
 async def test_message_to_a_student_is_redirected_to_the_admin(safe):
     got = await call(safe, SendMessage(chat_id=STRANGER, text="твой сертификат"))
-    assert got.chat_id == ADMIN, "письмо ушло постороннему"
+    assert got.chat_id == ADMIN, "the letter reached an outsider"
     assert BADGE in got.text and str(STRANGER) in got.text
     assert "твой сертификат" in got.text
     assert safe.intercepted == 1 and safe.last == (STRANGER, "sendMessage")
@@ -72,7 +73,7 @@ async def test_document_keeps_its_caption_and_gets_the_badge(safe):
 
 
 async def test_editing_someone_elses_message_is_a_loud_error(safe):
-    """Перенаправлять правку некуда: чужого сообщения у админа нет."""
+    """There is nowhere to redirect an edit: the admin has no such message."""
     with pytest.raises(BlockedBySafeMode) as exc:
         await call(safe, EditMessageText(chat_id=STRANGER, message_id=1, text="x"))
     assert exc.value.chat_id == STRANGER
@@ -105,16 +106,16 @@ async def test_nothing_is_intercepted_when_switched_off(cfg):
 
 
 async def test_original_method_is_not_mutated(safe):
-    """Перенаправление делает копию: исходный объект мог бы уйти повторно."""
+    """Redirecting makes a copy: the original object could otherwise be sent again."""
     method = SendMessage(chat_id=STRANGER, text="привет")
     await call(safe, method)
     assert method.chat_id == STRANGER and method.text == "привет"
 
 
-# --- подключение и индикация ------------------------------------------------------
+# --- wiring and indication --------------------------------------------------------
 
 def test_middleware_is_registered_on_the_session(cfg):
-    """Мидлварь бесполезна, если её забыли повесить, — проверяем сам факт."""
+    """The middleware is useless if nobody attached it — check that it is there."""
     from aiogram import Bot
     from aiogram.client.default import DefaultBotProperties
 
@@ -129,7 +130,7 @@ def test_badge_shows_only_in_sandbox(cfg):
 
 
 def test_config_still_builds_with_the_original_arguments(tmp_path):
-    """conftest и selfcheck строят Config шестью аргументами — не сломать их."""
+    """conftest and selfcheck build Config with six arguments — do not break them."""
     c = Config(token="t", admin_ids=frozenset(), admin_usernames=frozenset(),
                support_username="s", data_root=tmp_path, db_path=tmp_path / "db")
     assert c.safe_mode is True and c.sandbox_chat_ids == frozenset()

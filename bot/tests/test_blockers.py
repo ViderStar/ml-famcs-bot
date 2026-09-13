@@ -1,13 +1,12 @@
-"""Объяснение вердикта: почему домашка не зачтена.
+"""Explaining the verdict: why a homework did not pass.
 
-Смысл этих тестов — чтобы бот и проверка никогда не расходились. Студенту
-показывается не «список замечаний», а именно те причины, по которым тема не
-зачтена: критичные замечания и недобор обязательных пунктов. Замечания уровня
-«серьёзное» и «мелкое» на зачёт не влияют, и если бот начнёт намекать на
-обратное, человек будет чинить не то.
+The point of these tests is that the bot and the grader never diverge. The
+student is shown not "a list of findings" but exactly the reasons the topic
+failed: critical findings and too few required items. Major and minor findings
+do not affect the verdict, and if the bot starts hinting otherwise, people will
+fix the wrong thing.
 """
 
-import pytest
 
 from mlbot.views import (blockers, failed_topics, finding_text, hw_card_text,
                          is_blocking, points_needed, results_text, verdict_block)
@@ -21,20 +20,21 @@ def test_pass_ratio_matches_the_checker(course):
 
 
 def test_points_needed_matches_the_ratio_comparison(course):
-    """Граница в пунктах должна совпадать со сравнением доли в проверке."""
+    """The boundary in items must match the grader's ratio comparison."""
     ratio = course.hw_pass_ratio
     for total in range(1, 40):
         need = points_needed(course, {"required_total": total})
-        assert need / total >= ratio, f"{need}/{total} проверку бы не прошло"
+        assert need / total >= ratio, f"{need}/{total} would not have passed"
         if need:
-            assert (need - 1) / total < ratio, f"{need - 1}/{total} тоже прошло бы"
+            assert (need - 1) / total < ratio, f"{need - 1}/{total} would also have passed"
 
 
 def test_verdict_explanation_agrees_with_the_recorded_status(course):
-    """Ключевой тест: причины находятся ровно у незачтённых работ.
+    """The key test: reasons exist for exactly the failed submissions.
 
-    Прогоняется по всем работам потока. Если у незачтённой темы причин нет,
-    студент увидит «не зачтено» без объяснения — ровно то, на что жаловались.
+    Runs over every submission in the stream. If a failed topic has no reasons,
+    the student sees "did not pass" with no explanation — the very thing they
+    complained about.
     """
     checked = 0
     for student in course.active:
@@ -44,9 +44,9 @@ def test_verdict_explanation_agrees_with_the_recorded_status(course):
             reasons = blockers(course, hw)
             checked += 1
             if hw["status"] == "failed":
-                assert reasons, f"{student.key} {hw_id}: не зачтено без причины"
+                assert reasons, f"{student.key} {hw_id}: failed with no reason"
             else:
-                assert not reasons, f"{student.key} {hw_id}: зачтено, но причины есть"
+                assert not reasons, f"{student.key} {hw_id}: passed yet has reasons"
     assert checked > 3 * len(course.active)
 
 
@@ -68,7 +68,7 @@ def test_failed_topics_lists_only_graded_topics(course):
 
 
 def test_failed_count_matches_the_progress_bar(course):
-    """«Не зачтено работ: N» не должно противоречить «зачтено M из 12»."""
+    """"N submissions failed" must not contradict "M of 12 passed"."""
     for student in course.active:
         submitted_graded = [h for hw_id, h in student.homeworks.items()
                             if hw_id in course.graded_ids and h["status"] != "missing"]
@@ -96,7 +96,7 @@ def test_passed_homework_says_remarks_did_not_matter(course):
 
 
 def test_every_verdict_block_renders_for_the_whole_cohort(course):
-    """Ни одна карточка не должна падать и ломать разметку."""
+    """No card may crash or break the markup."""
     for student in course.active:
         for hw_id, hw in student.homeworks.items():
             text = "\n".join(verdict_block(course, hw))
@@ -120,12 +120,12 @@ def test_finding_card_says_whether_it_cost_the_verdict(course):
     if other:
         assert "не влияло" in finding_text(course, hw_id, other, 0, hw)
 
-    # Без данных по теме отметки нет — старый вызов не должен врать.
+    # With no data for the topic there is no mark — the old call must not lie.
     assert "не зачтена" not in finding_text(course, hw_id, crit, 0)
 
 
 def test_results_screen_explains_the_gap(course):
-    """«Сдал 12, зачтено 6» без объяснения — исходная жалоба студентов."""
+    """"Submitted 12, passed 6" with no explanation — the original student complaint."""
     student = next(s for s in course.active if failed_topics(course, s))
     text = results_text(course, student)
     assert f"зачтено {student.passed}" in text
@@ -137,12 +137,13 @@ def test_results_screen_explains_the_gap(course):
 
 
 def test_leakage_no_longer_costs_the_verdict(course):
-    """Случай, ради которого утечку понизили до серьёзного замечания.
+    """The case leakage was downgraded to a major finding for.
 
-    Была работа, где все пункты закрыты, а `fit_before_split` закрывал зачёт —
-    и таких набралось на два десятка незачётов. Теперь замечание остаётся в
-    разборе, но вердикт не меняет. Свойство ищется по потоку, а не по
-    конкретному человеку: имён студентов в тестах нет — репозиторий открытый.
+    There was work with every item closed where `fit_before_split` still failed
+    it — two dozen failures like that. The finding now stays in the review but
+    no longer changes the verdict. The property is searched for across the
+    stream rather than on one person: tests name no students, the repository is
+    public.
     """
     checked = 0
     for st in course.active:
@@ -154,7 +155,7 @@ def test_leakage_no_longer_costs_the_verdict(course):
             assert all(f["severity"] != "critical" for f in leak), f"{st.key} {hw_id}"
             if hw["status"] == "passed":
                 reasons = dict(failed_topics(course, st))
-                assert hw_id not in reasons, f"{st.key} {hw_id}: зачтено, но в причинах"
-    assert checked, "в потоке не нашлось ни одной работы с утечкой"
+                assert hw_id not in reasons, f"{st.key} {hw_id}: passed yet listed in reasons"
+    assert checked, "no submission in the stream has a leakage finding"
 
 

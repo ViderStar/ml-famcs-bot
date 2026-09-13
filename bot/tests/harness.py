@@ -1,13 +1,13 @@
-"""Стенд: настоящий диспетчер, поддельная сессия телеграма.
+"""A test bench: the real dispatcher, a fake Telegram session.
 
-Нужен, чтобы проверять бота **поведением, а не грепом по исходникам**. Текстовые
-проверки («в файле есть подстрока `_is_admin(cfg`») перестают что-либо значить,
-как только код переезжает в другой модуль: они не падают — они молча проходят.
+It exists so the bot can be checked **by behaviour, not by grepping the source**.
+Text checks ("the file contains `_is_admin(cfg`") stop meaning anything the
+moment the code moves to another module: they do not fail — they pass silently.
 
-Апдейты идут через `dp.feed_update`, то есть через все мидлвари, фильтры и
-роутеры в их настоящем порядке. Исходящие вызовы перехватывает `Recorder` —
-подмена на уровне сессии, ровно там же, где стоит `SafeMode`, поэтому в тестах
-виден и результат его работы.
+Updates go through `dp.feed_update`, so through every middleware, filter and
+router in their real order. Outgoing calls are caught by `Recorder` — a
+substitution at session level, exactly where `SafeMode` sits, so its effect is
+visible in tests too.
 """
 
 from __future__ import annotations
@@ -37,12 +37,12 @@ TOKEN = "42:TESTTESTTESTTESTTESTTESTTESTTESTTES"
 
 
 def detach_routers() -> None:
-    """Отпустить роутеры от диспетчера, собранного раньше.
+    """Detach the routers from a dispatcher built earlier.
 
-    Роутеры — синглтоны уровня модуля, и аиограм намеренно запрещает
-    подключить один роутер к двум диспетчерам: в бою это почти всегда
-    ошибка. В тестах диспетчер собирается заново — иногда дважды внутри
-    одного теста, — поэтому прежнего владельца снимаем.
+    Routers are module-level singletons, and aiogram deliberately forbids
+    attaching one router to two dispatchers: in production that is almost always
+    a bug. In tests the dispatcher is rebuilt — sometimes twice inside one test —
+    so the previous owner is released.
     """
     for module in ROUTERS:
         module.router._parent_router = None
@@ -50,7 +50,7 @@ def detach_routers() -> None:
 
 @dataclass
 class Sent:
-    """Один исходящий вызов в удобном для проверок виде."""
+    """One outgoing call in a shape convenient for assertions."""
 
     api: str
     chat_id: int | None
@@ -59,7 +59,7 @@ class Sent:
 
     @property
     def buttons(self) -> list[tuple[str, str | None]]:
-        """Подписи и `callback_data` кнопок: инлайновых и обычных."""
+        """Button captions and `callback_data`: inline and reply alike."""
         if isinstance(self.markup, InlineKeyboardMarkup):
             return [(b.text, b.callback_data)
                     for row in self.markup.inline_keyboard for b in row]
@@ -69,14 +69,14 @@ class Sent:
 
 
 class Recorder(BaseSession):
-    """Сессия, которая ничего не отправляет, а складывает вызовы в список."""
+    """A session that sends nothing and collects the calls in a list."""
 
     def __init__(self) -> None:
         super().__init__()
         self.calls: list[Sent] = []
         self._ids = itertools.count(9000)
 
-    async def close(self) -> None:  # pragma: no cover — сессия ничего не держит
+    async def close(self) -> None:  # pragma: no cover — the session holds nothing
         pass
 
     async def stream_content(self, *args, **kwargs):  # pragma: no cover
@@ -97,7 +97,7 @@ class Recorder(BaseSession):
 
 
 class Bench:
-    """Один пользователь, разговаривающий с ботом."""
+    """One user talking to the bot."""
 
     def __init__(self, cfg, course, store, demo=None, *,
                  user_id: int = 777, username: str | None = None,
@@ -105,17 +105,18 @@ class Bench:
         detach_routers()
         self.session = Recorder()
         self.bot = Bot(token=TOKEN, session=self.session)
-        # Предохранитель ставится там же, где в бою: мидлварью сессии, то есть
-        # на пути каждого вызова API. Без него тест проверял бы не того бота.
+        # The safety catch goes where it goes in production: a session
+        # middleware, on the path of every API call. Without it the test would be
+        # checking a different bot.
         if safe:
             from mlbot.safety import SafeMode
             self.safe = SafeMode(cfg)
             self.bot.session.middleware(self.safe)
         self.dp = build_dispatcher(cfg, course, store, demo)
-        # Троттлинг рассчитан на живого человека: 0.4 с между нажатиями. Тест
-        # жмёт кнопки за микросекунды, и без этого половина нажатий утонула бы
-        # в «Не так быстро». Сама мидлварь остаётся на месте — проверка её
-        # регистрации живёт в test_tester_mode.py.
+        # Throttling is sized for a human: 0.4 s between presses. A test presses
+        # buttons in microseconds, and without this half of them would drown in
+        # "not so fast". The middleware itself stays in place — the check that it
+        # is registered lives in test_tester_mode.py.
         for observer in (self.dp.message, self.dp.callback_query):
             for mw in observer.outer_middleware:
                 if isinstance(mw, Throttle):
@@ -133,7 +134,7 @@ class Bench:
         return fresh
 
     async def send(self, text: str, entities=None) -> list[Sent]:
-        """`entities` — разметка так, как её присылает телеграм: не в тексте, а рядом."""
+        """`entities` — formatting the way Telegram sends it: beside the text, not in it."""
         message = Message(
             message_id=next(self._ids),
             date=datetime.now(timezone.utc),
@@ -161,7 +162,7 @@ class Bench:
 
     @property
     def text(self) -> str:
-        """Весь текст последнего ответа одной строкой."""
+        """All the text of the last reply as one string."""
         return "\n".join(s.text for s in self.screens)
 
     @property
@@ -171,7 +172,7 @@ class Bench:
 
 @dataclass
 class Crawl:
-    """Итог обхода: что нажали, что увидели."""
+    """The traversal result: what was pressed, what was seen."""
 
     pressed: set[str] = field(default_factory=set)
     sent: list[Sent] = field(default_factory=list)
@@ -179,20 +180,20 @@ class Crawl:
 
     @property
     def payloads(self) -> set[str]:
-        """Все `callback_data`, которые бот когда-либо показал."""
+        """Every `callback_data` the bot ever showed."""
         return {d for s in self.sent for _, d in s.buttons if d}
 
 
 async def crawl(bench: Bench, start: str = "/start", *, limit: int = 400) -> Crawl:
-    """Обойти всё, до чего можно дожать кнопками.
+    """Walk everything reachable by pressing buttons.
 
-    Обход по кнопкам, а не по реестру меню: так тест видит бота ровно тем же,
-    чем его видит студент, и не зависит от того, как меню устроено внутри —
-    поэтому переживает любую перестройку.
+    By buttons rather than by the menu registry: this way the test sees the bot
+    exactly as a student does and does not depend on how the menu is built
+    inside — so it survives any restructuring.
 
-    Кнопки обычной клавиатуры — это текстовые сообщения, и некоторые из них
-    начинают диалог («введите фамилию»). Перед каждой шлём `/cancel`, иначе
-    следующее нажатие уедет в ответ на вопрос, а не в меню.
+    Reply-keyboard buttons are text messages, and some of them start a dialogue
+    ("type a surname"). `/cancel` is sent before each, otherwise the next press
+    would land as an answer to the question rather than in the menu.
     """
     out = Crawl()
     seen_data: set[str] = set()

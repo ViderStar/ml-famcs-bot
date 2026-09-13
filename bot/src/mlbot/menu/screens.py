@@ -1,8 +1,8 @@
-"""Дерево экранов. Один узел — одно объявление и один рендерер рядом с ним.
+"""The screen tree. One node is one declaration with its renderer beside it.
 
-Тексты по-прежнему собирает `views.py`: он прогоняется в тестах по всем 205
-студентам и 4332 замечаниям, и дублировать сборку здесь нельзя — однажды такая
-копия уже разъехалась с оригиналом и роняла карточку темы у каждого.
+Text is still assembled by `views.py`: tests run it over every student and every
+finding, and duplicating that assembly here is not allowed — such a copy once
+drifted from the original and crashed the topic card for everyone.
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from ..views import (article_text, external_links, finding_text, hw_card_text,
                      plan_text, results_text, sorted_findings, strengths_text)
 from .core import Ctx, Screen, cb, links_rows, node, paginate
 
-# Куда идти дальше — из постов канала курса.
+# Where to go next — taken from the course channel posts.
 NEXT_STEPS = (
     ("Яндекс.Хендбук по машинному обучению", "https://education.yandex.ru/handbook/ml"),
     ("Открытый курс ODS на Хабре", "https://habr.com/ru/companies/ods/articles/322626/"),
@@ -27,7 +27,7 @@ NEXT_STEPS = (
 
 
 def _write_to_teacher(ctx: Ctx) -> list:
-    """Кнопка «написать преподавателю», если есть кому писать."""
+    """The "write to the teacher" button, if there is anyone to write to."""
     if not ctx.cfg.support_username:
         return []
     return [[InlineKeyboardButton(
@@ -35,15 +35,15 @@ def _write_to_teacher(ctx: Ctx) -> list:
         url=f"https://t.me/{ctx.cfg.support_username}")]]
 
 
-# --- служебное -----------------------------------------------------------------
+# --- housekeeping ---------------------------------------------------------------
 
 @node("noop", "—", parent=None)
 async def noop(ctx: Ctx) -> Screen:
-    """Счётчик «3/7» в пагинаторе: кнопка обязана быть нажимаемой и ничего не делать."""
+    """The "3/7" paginator counter: the button must be pressable and do nothing."""
     return Screen(alert=" ")
 
 
-# --- 🎓 второй сезон -------------------------------------------------------------
+# --- season 2 ---------------------------------------------------------------------
 
 @node("s2", "Второй сезон", label="🎓 Второй сезон", order=1,
       kids=("s2.res", "s2.hw", "s2.plan", "s2.lib", "s2.crt"),
@@ -152,7 +152,7 @@ async def plan(ctx: Ctx) -> Screen:
     return Screen(text=text, rows=links_rows(links, limit=5))
 
 
-# --- 📦 материалы сезона: доступны и тем, кто ничего не сдавал --------------------
+# --- season materials: available even to those who submitted nothing --------------
 
 def _topics_with_materials(ctx: Ctx):
     out = []
@@ -166,10 +166,10 @@ def _topics_with_materials(ctx: Ctx):
 @node("s2.lib", "Материалы сезона", "s2", label="📦 Материалы сезона",
       kids=_topics_with_materials)
 async def library(ctx: Ctx) -> Screen:
-    """Слайды и задания жили только внутри карточки домашки.
+    """Slides and assignments used to live only inside the homework card.
 
-    То есть человеку, который её не сдавал, они были недоступны совсем —
-    хотя именно ему они и нужны.
+    Which meant someone who had not submitted it could not reach them at all —
+    though they are exactly who needs them.
     """
     return Screen(text=texts.LIBRARY)
 
@@ -222,7 +222,7 @@ async def reading(ctx: Ctx) -> Screen:
         rows=links_rows(links, limit=5), back=cb("s2.lib.hw", ctx.arg))
 
 
-# --- 🏆 сертификат ---------------------------------------------------------------
+# --- certificate ------------------------------------------------------------------
 
 def _awards(ctx: Ctx):
     st = ctx.student
@@ -256,7 +256,7 @@ async def certificate(ctx: Ctx) -> Screen:
 
 @node("s2.crt.pdf", "Сертификат", "s2.crt", needs_student=True)
 async def certificate_file(ctx: Ctx) -> Screen:
-    """Кто получит файл, решает привязка, а не содержимое кнопки."""
+    """Who gets the file is decided by the binding, not by the button's contents."""
     st = ctx.student
     path = ctx.course.certificate_file(st.key) if st.certificate else None
     if path is None:
@@ -273,12 +273,12 @@ async def ceremony_photo(ctx: Ctx) -> Screen:
     if path is None:
         return Screen(text=texts.NO_PHOTO_FILE.format(support=ctx.cfg.support_username))
     await ctx.store.log(ctx.user.id, "ceremony_photo")
-    # Документом, а не фотографией: снимок 5712×4284 телеграм бы пережал.
+    # As a document, not a photo: Telegram would recompress a 5712x4284 shot.
     return Screen(docs=[(texts.PHOTO_CAPTION.format(fio=escape(st.fio)), path,
                          f"Вручение ML FAMCS — {st.fio}.jpg")])
 
 
-# --- 🔎 справочник ---------------------------------------------------------------
+# --- reference --------------------------------------------------------------------
 
 def _reference_topics(ctx: Ctx):
     out = [("⚙️ Общие ошибки", "ref.hw", "common")]
@@ -343,7 +343,7 @@ async def random_article(ctx: Ctx) -> Screen:
                                               callback_data=cb("ref.rnd"))]])
 
 
-# --- 🆘 помощь -------------------------------------------------------------------
+# --- help -------------------------------------------------------------------------
 
 @node("help", "Помощь", label="🆘 Помощь", order=3, kids=("help.ask", "help.who", "help.data", "help.cmd"))
 async def help_root(ctx: Ctx) -> Screen:
@@ -353,7 +353,7 @@ async def help_root(ctx: Ctx) -> Screen:
 
 @node("help.ask", "Написать преподавателю", "help", label="✉️ Написать преподавателю")
 async def ask(ctx: Ctx) -> Screen:
-    """Следующее сообщение пользователя уйдёт преподавателю."""
+    """The user's next message goes to the teacher."""
     from ..handlers.support import Ask
     if ctx.state is not None:
         await ctx.state.set_state(Ask.waiting_text)
@@ -365,8 +365,8 @@ async def ask(ctx: Ctx) -> Screen:
 
 @node("help.who", "Кто я для бота", "help", label="🪪 Кто я для бота")
 async def whoami(ctx: Ctx) -> Screen:
-    # В тестер-режиме `ctx.student` — уже та запись, глазами которой смотрят:
-    # подстановку делает `deps._resolve`, лезть в каталог напрямую незачем.
+    # In tester mode `ctx.student` is already the record being looked through:
+    # `deps._resolve` does the substitution, no need to reach into the catalog.
     if await ctx.store.test_view(ctx.user.id):
         return Screen(text=texts.WHOAMI_TEST.format(
             fio=escape(ctx.student.fio if ctx.student else "—")))
@@ -385,15 +385,15 @@ async def commands(ctx: Ctx) -> Screen:
     return Screen(text=text)
 
 
-# --- 💾 что бот знает о человеке ---------------------------------------------------
+# --- what the bot knows about a person ----------------------------------------------
 
 @node("help.data", "Мои данные", "help", label="💾 Мои данные",
       kids=("help.data.dl", "help.data.rm"))
 async def my_data(ctx: Ctx) -> Screen:
-    """Раз бот хранит привязку и историю нажатий, человек вправе это видеть.
+    """If the bot keeps a binding and a click history, the person may see it.
 
-    К третьему сезону здесь появится и анкета с почтой — тем более стоит
-    показать всё заранее, а не после.
+    By season 3 a form with an email address lands here too — all the more
+    reason to show everything up front rather than after the fact.
     """
     about = await ctx.store.about(ctx.user.id)
     b = about["binding"]

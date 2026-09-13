@@ -1,10 +1,10 @@
-"""Защита записи, за которой закреплён username из формы регистрации.
+"""Protecting a record that carries a username from the registration form.
 
-Живой инцидент первой недели: посторонний аккаунт привязался к чужой записи,
-введя ФИО студентки и ссылку на её репозиторий. И то и другое известно
-однокурсникам, так что двух «факторов» тут не было — был один.
-Теперь запись с проверенным username отдаётся только владельцу этого username,
-остальные попадают в заявки на ручную проверку.
+A real incident in the first week: an outsider bound to someone else's record by
+typing the student's name and her repository link. Classmates know both, so
+there were not two "factors" here — there was one. Now a record with a verified
+username is given only to the owner of that username; everyone else becomes a
+manual-review claim.
 """
 
 from types import SimpleNamespace
@@ -55,12 +55,12 @@ class FakeState:
 
 
 def _protected(course: Course):
-    """Студент, за записью которого закреплён живой username."""
+    """A student whose record carries a live username."""
     key = next(k for k in course.expected_usernames if k in course.students)
     return course.students[key], course.expected_usernames[key]
 
 
-# --- карта ------------------------------------------------------------------------
+# --- the map -------------------------------------------------------------------------
 
 def test_expected_usernames_are_only_verified_links(cfg, course):
     from mlcheck.telegram import read_map
@@ -69,26 +69,26 @@ def test_expected_usernames_are_only_verified_links(cfg, course):
     for key, name in course.expected_usernames.items():
         assert links[key].usable and links[key].exists != "no", key
         assert links[key].username.lower() == name.lower()
-    # Записи с мёртвым username в защиту не попадают: их владельцы сменили телеграм.
+    # Records with a dead username are not protected: their owners changed telegram.
     dead = [lk.key for lk in links.values() if lk.exists == "no"]
     assert dead and all(k not in course.expected_usernames for k in dead)
 
 
 def test_a_verified_record_keeps_its_owner(course):
-    """Запись с подтверждённым телеграмом закреплена за ним, а не за первым пришедшим.
+    """A record with a confirmed telegram belongs to it, not to whoever came first.
 
-    Это та самая защита, которой не было: посторонний аккаунт открыл чужой
-    разбор по ФИО и ссылке — и то и другое известно однокурсникам. Проверяем
-    свойство, не называя студентов: репозиторий открытый.
+    This is the protection that was missing: an outsider opened someone else's
+    review using a name and a link, both known to classmates. The property is
+    checked without naming students: the repository is public.
     """
     protected = {k: u for k, u in course.expected_usernames.items() if u}
-    assert protected, "в потоке нет ни одной записи с подтверждённым телеграмом"
+    assert protected, "no record in the stream has a confirmed telegram"
     for key, username in protected.items():
         assert course.expected_username(key) == username
         assert key in course.students
 
 
-# --- привязка ---------------------------------------------------------------------
+# --- binding --------------------------------------------------------------------------
 
 async def test_stranger_gets_a_claim_instead_of_access(cfg, course, store):
     st, owner = _protected(course)
@@ -97,7 +97,7 @@ async def test_stranger_gets_a_claim_instead_of_access(cfg, course, store):
 
     await start._finish(_msg(sent, stranger), state, store, cfg, course, st)
 
-    assert await store.binding(999) is None, "чужой аккаунт не должен привязаться"
+    assert await store.binding(999) is None, "a foreign account must not bind"
     assert await store.binding_of_student(st.key) is None
     claims = await store.pending_claims()
     assert [(c["tg_id"], c["student_key"], c["expected"]) for c in claims] == \
@@ -117,10 +117,10 @@ async def test_owner_binds_without_a_claim(cfg, course, store):
 
 
 async def test_record_without_username_also_waits_for_the_admin(cfg, course, store):
-    """У 47 записей telegram в форме нет вовсе — сверять не с чем, решает человек.
+    """47 records have no telegram in the form at all — nothing to compare, a human decides.
 
-    Прежде здесь работало «первый подтвердивший — владелец», и это была та же
-    дыра: фамилию и ссылку знает любой однокурсник.
+    The old rule here was "first to confirm owns it", which was the same hole:
+    any classmate knows a surname and a link.
     """
     st = next(s for s in course.active if course.expected_username(s.key) is None)
     sent = []
@@ -136,7 +136,7 @@ async def test_record_without_username_also_waits_for_the_admin(cfg, course, sto
 
 
 async def test_two_people_can_claim_the_same_unverifiable_record(cfg, course, store):
-    """Обе заявки видны админу — именно тот случай, когда решать должен человек."""
+    """Both claims are visible to the admin — exactly the case a human should decide."""
     st = next(s for s in course.active if course.expected_username(s.key) is None)
     for tg, name in ((10, "first"), (11, "second")):
         await start._finish(_msg([], SimpleNamespace(id=tg, username=name, full_name=name)),
@@ -146,10 +146,10 @@ async def test_two_people_can_claim_the_same_unverifiable_record(cfg, course, st
 
 
 async def test_username_owner_binds_instantly_even_by_fio_and_link(cfg, course, store):
-    """Ждать заставляем не «ручной путь», а недоказанное владение.
+    """What waits is unproven ownership, not "the manual route".
 
-    Если username совпадает с закреплённым за записью, человек — владелец,
-    и неважно, нажал он кнопку подтверждения или прислал ссылку.
+    If the username matches the one recorded for the record, the person is the
+    owner — whether they pressed confirm or sent a link.
     """
     st, owner = _protected(course)
     user = SimpleNamespace(id=3, username=owner, full_name="Владелец")
@@ -166,7 +166,7 @@ async def test_repeated_attempt_does_not_duplicate_the_claim(cfg, course, store)
     assert len(await store.pending_claims()) == 1
 
 
-# --- разбор заявок ----------------------------------------------------------------
+# --- resolving claims -----------------------------------------------------------------
 
 async def test_approving_a_claim_binds_and_closes_it(store):
     cid = await store.add_claim(999, "key1", "new_name", "Кто-то", "old_name")

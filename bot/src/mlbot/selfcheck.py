@@ -1,7 +1,7 @@
-"""Диагностика: видит ли бот данные курса.
+"""Diagnostics: can the bot see the course data.
 
-Запускается без токена — полезно сразу после сборки образа, чтобы проверить,
-что монтирования на месте:
+Runs without a token — useful right after building the image, to check the
+mounts are in place:
 
     docker run --rm -v ...:/data:ro -e DATA_ROOT=/data bot-mlbot \
         uv run --no-dev python -m mlbot.selfcheck
@@ -34,83 +34,83 @@ def main() -> int:
 
     problems: list[str] = []
     for label, path in (
-        ("отчёты", cfg.findings_dir),
-        ("каталог ошибок", cfg.checker_dir / "catalog"),
-        ("рубрики", cfg.checker_dir / "rubrics"),
-        ("материалы лекций", cfg.materials_dir),
+        ("reports", cfg.findings_dir),
+        ("error catalog", cfg.checker_dir / "catalog"),
+        ("rubrics", cfg.checker_dir / "rubrics"),
+        ("lecture materials", cfg.materials_dir),
     ):
         if not path.exists():
-            problems.append(f"нет каталога {label}: {path}")
+            problems.append(f"no {label} directory: {path}")
 
     print(f"DATA_ROOT = {root}")
     if problems:
         for p in problems:
             print(f"  ✗ {p}")
-        print("\nПроверьте монтирования в compose.yaml.")
+        print("\nCheck the mounts in compose.yaml.")
         return 1
 
     course = Course.load(cfg)
-    print(f"  ✓ студентов: {len(course.students)}, проверено {len(course.active)}")
-    print(f"  ✓ статей каталога: {len(course.catalog)}")
-    print(f"  ✓ тем: {len(course.rubrics)}, зачётных {course.total_graded}")
-    print(f"  ✓ порог {course.certificate_ratio:.0%} → нужно "
-          f"{course.required_passed} из {course.total_graded}")
-    print(f"  ✓ сертификатов: {course.certificates}")
+    print(f"  ✓ students: {len(course.students)}, graded {len(course.active)}")
+    print(f"  ✓ catalog articles: {len(course.catalog)}")
+    print(f"  ✓ topics: {len(course.rubrics)}, graded {course.total_graded}")
+    print(f"  ✓ threshold {course.certificate_ratio:.0%} → need "
+          f"{course.required_passed} of {course.total_graded}")
+    print(f"  ✓ certificates: {course.certificates}")
 
     known = len(course.usernames)
-    print(f"  {'✓' if known else '·'} узнаётся по telegram-username: {known} "
-          f"из {len(course.students)} (остальные — по ФИО и ссылке)")
+    print(f"  {'✓' if known else '·'} recognised by telegram username: {known} "
+          f"of {len(course.students)} (the rest by name and link)")
 
     tasks = sum(1 for hw in course.rubrics if course.task_text(hw))
     materials = sum(len(course.materials(hw)) for hw in course.rubrics)
-    print(f"  ✓ текстов заданий: {tasks}, файлов лекций: {materials}")
+    print(f"  ✓ assignment texts: {tasks}, lecture files: {materials}")
     print(f"  {'✓' if course.attention else '·'} attention.md: "
-          f"{'есть' if course.attention else 'нет (не критично)'}")
+          f"{'present' if course.attention else 'absent (not critical)'}")
 
-    # --- то, от чего зависит безопасность проверки ---------------------------------
+    # --- what the safety of walking the bot depends on -----------------------------
     print()
     if cfg.support_username:
-        print(f"  ✓ поддержка: @{cfg.support_username}")
+        print(f"  ✓ support contact: @{cfg.support_username}")
     else:
-        problems.append("SUPPORT_USERNAME не задан — кнопки «написать преподавателю» не будет")
-        print("  ✗ SUPPORT_USERNAME не задан: кнопка «написать преподавателю» не появится")
+        problems.append("SUPPORT_USERNAME unset — there will be no 'write to the teacher' button")
+        print("  ✗ SUPPORT_USERNAME unset: the 'write to the teacher' button will not appear")
 
     if cfg.safe_mode:
-        print("  ✓ SAFE_MODE включён: письма студентам разворачиваются на админа")
+        print("  ✓ SAFE_MODE on: letters to students are redirected to the admin")
     else:
-        print("  ⚠ SAFE_MODE ВЫКЛЮЧЕН: сообщения уйдут живым людям")
+        print("  ⚠ SAFE_MODE OFF: messages will reach real people")
 
     if cfg.demo_findings.exists():
         demo = Course.load(cfg, findings_dir=cfg.demo_findings, season="demo")
-        print(f"  ✓ вымышленных студентов: {len(demo.students)} "
+        print(f"  ✓ fictional students: {len(demo.students)} "
               f"({cfg.demo_findings})")
     else:
-        problems.append(f"нет каталога с демо-записями: {cfg.demo_findings}")
-        print(f"  ✗ демо-записей нет: {cfg.demo_findings}")
+        problems.append(f"no fictional-records directory: {cfg.demo_findings}")
+        print(f"  ✗ no fictional records: {cfg.demo_findings}")
 
-    # out/ монтируется только на чтение — выгрузкам нужно своё записываемое место.
+    # out/ is mounted read-only — exports need a writable place of their own.
     try:
         cfg.export_dir.mkdir(parents=True, exist_ok=True)
         probe = cfg.export_dir / ".selfcheck"
         probe.write_text("ok")
         probe.unlink()
-        print(f"  ✓ каталог выгрузок пишется: {cfg.export_dir}")
+        print(f"  ✓ export directory is writable: {cfg.export_dir}")
     except OSError as exc:
-        problems.append(f"в {cfg.export_dir} не пишется: {exc}")
-        print(f"  ✗ в {cfg.export_dir} не пишется: {exc}")
+        problems.append(f"{cfg.export_dir} is not writable: {exc}")
+        print(f"  ✗ {cfg.export_dir} is not writable: {exc}")
 
     from .menu import core as menu
-    print(f"  ✓ узлов меню: {len(menu.NODES)}")
+    print(f"  ✓ menu nodes: {len(menu.NODES)}")
 
     if not course.students:
-        print("\nОтчётов нет — сначала прогоните проверку: uv run mlcheck report")
+        print("\nNo reports — run the grader first: uv run mlcheck report")
         return 1
     if problems:
-        print("\nНе всё на месте:")
+        print("\nSomething is missing:")
         for p in problems:
             print(f"  ✗ {p}")
         return 1
-    print("\nВсё на месте. Осталось задать BOT_TOKEN и запустить бота.")
+    print("\nAll set. Just add BOT_TOKEN and start the bot.")
     return 0
 
 

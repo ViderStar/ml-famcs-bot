@@ -1,9 +1,9 @@
-"""Фильтр прав, который нельзя забыть.
+"""A rights filter that cannot be forgotten.
 
-Проверка внутри обработчика держится на дисциплине: новый обработчик пишут,
-а строчку `if not _is_admin(...)` — забывают, и тест, который её искал грепом,
-ничего не заметит. Фильтр вешается на обсервер роутера один раз, и тогда
-незащищённый обработчик в этом роутере физически невозможен.
+A check inside a handler rests on discipline: the handler gets written and the
+`if not _is_admin(...)` line gets forgotten, and a test that grepped for it
+notices nothing. The filter goes on the router observer once, and after that an
+unprotected handler in that router is physically impossible.
 """
 
 from __future__ import annotations

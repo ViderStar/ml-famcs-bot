@@ -1,16 +1,16 @@
-"""Проверка, что репозиторий существует. Больше ничего.
+"""Checking that a repository exists. Nothing more.
 
-Содержимое чужого репозитория бот не запрашивает и не клонирует — ни
-`contents`, ни `git clone`. Это закреплено структурным тестом: студент отдаёт
-ссылку на свою работу, а не доступ к ней.
+The bot never requests or clones the contents of someone's repository — no
+`contents` endpoint, no clone. A structural test pins that: a student hands over
+a link to their work, not access to it.
 
-Привязка **никогда не блокируется** результатом проверки. 404 от GitHub не
-отличить от «репозиторий приватный», и отказывать по нему значило бы отвергать
-честные работы. Проверка — подсказка, а не вахтёр, и формулировка неосуждающая.
+Binding is **never blocked** by the result. A GitHub 404 is indistinguishable
+from "the repository is private", and refusing on it would reject honest work.
+The check is a hint, not a gatekeeper, and the wording is non-judgemental.
 
-Без токена GitHub даёт 60 запросов в час — на поток в двести человек этого не
-хватает даже в день старта. Отсюда кэш на шесть часов, `GITHUB_TOKEN` и
-запасной путь: обычный HEAD по HTML-странице, у него лимита нет.
+Without a token GitHub allows 60 requests an hour — not enough for two hundred
+students even on launch day. Hence a six-hour cache, `GITHUB_TOKEN`, and a
+fallback: a plain HEAD against the HTML page, which has no such limit.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ class Repo:
 
 
 def parse(url: str) -> Repo | None:
-    """Разбор ссылки — тем же кодом, что и у проверки домашек."""
+    """Link parsing — the same code the grader uses."""
     from mlcheck.roster import normalize_url
 
     slug = normalize_url(url)
@@ -65,7 +65,7 @@ def _headers(cfg) -> dict:
 
 
 async def exists(cfg, repo: Repo) -> tuple[bool | None, int]:
-    """`True`/`False`/`None` — есть, нет, не смогли проверить. Плюс код ответа."""
+    """`True`/`False`/`None` — exists, does not, could not check. Plus the status code."""
     try:
         async with aiohttp.ClientSession(timeout=TIMEOUT) as session:
             async with session.get(f"{API}/repos/{repo.full}",
@@ -75,8 +75,8 @@ async def exists(cfg, repo: Repo) -> tuple[bool | None, int]:
                 if r.status == 404:
                     return False, 404
                 if r.status in (403, 429):
-                    # Лимит исчерпан. HTML-страница лимита не знает.
-                    log.info("github: лимит запросов, пробуем HTML")
+                    # Rate limit hit. The HTML page knows no such limit.
+                    log.info("github: rate limited, falling back to HTML")
                     async with session.head(repo.html,
                                             allow_redirects=True) as h:
                         if h.status == 200:
@@ -91,7 +91,7 @@ async def exists(cfg, repo: Repo) -> tuple[bool | None, int]:
 
 
 async def check(cfg, store, url: str) -> tuple[Repo | None, bool | None, int]:
-    """Разобрать ссылку и узнать, существует ли репозиторий. С кэшем."""
+    """Parse the link and find out whether the repository exists. Cached."""
     repo = parse(url)
     if repo is None:
         return None, None, 0

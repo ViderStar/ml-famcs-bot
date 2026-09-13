@@ -1,11 +1,11 @@
-"""Третий сезон: направления, анкета, репозиторий.
+"""Season 3: tracks, the application form, the repository.
 
-Анкета — двенадцать шагов, но обработчиков у неё не двенадцать: шаги описаны
-данными в `season3/wizard.py`, а здесь одна функция отрисовки шага и по одному
-узлу на вид ответа.
+The form has twelve steps but not twelve handlers: the steps are data in
+`season3/wizard.py`, and here there is one step-rendering function and one node
+per kind of answer.
 
-Черновик живёт в SQLite, а не в состоянии: `MemoryStorage` не переживает
-перезапуск контейнера, и человек, заполнивший десять шагов, начинал бы заново.
+The draft lives in SQLite, not in FSM state: `MemoryStorage` does not survive a
+container restart, and someone ten steps in would have to start over.
 """
 
 from __future__ import annotations
@@ -68,10 +68,10 @@ async def track_card(ctx: Ctx) -> Screen:
         f"Уже записалось: <b>{counts.get(track.id, 0)}</b>"))
 
 
-# --- анкета -------------------------------------------------------------------------
+# --- the form -----------------------------------------------------------------------
 
 async def _render_step(ctx: Ctx, step, answers: dict) -> Screen:
-    """Один шаг анкеты. Вид ответа определяет, что нарисовать."""
+    """One step of the form. The kind of answer decides what to draw."""
     i = wizard.index(step.id) + 1
     head = texts.S3_STEP.format(i=i, n=len(wizard.STEPS), prompt=step.prompt)
     if step.hint:
@@ -92,8 +92,8 @@ async def _render_step(ctx: Ctx, step, answers: dict) -> Screen:
         rows.append(_btn("Дальше ▶" if enough else f"Выбери хотя бы {step.min_choices}",
                          cb("s3.nx", step.id) if enough else cb("noop")))
     else:
-        # Свободный ввод: ждём следующее сообщение. Состояние ставит тот, кто
-        # рисует шаг, — иначе ответ уехал бы в меню или в поддержку.
+        # Free text: wait for the next message. The state is set by whoever draws
+        # the step — otherwise the answer would land in the menu or in support.
         from ..handlers.season3 import Form
         if ctx.state is not None:
             await ctx.state.set_state(Form.answer)
@@ -108,7 +108,7 @@ async def _render_step(ctx: Ctx, step, answers: dict) -> Screen:
 
 
 async def _advance(ctx: Ctx, step_id: str, value, answers: dict | None = None) -> Screen:
-    """Записать ответ и показать следующий шаг — либо сводку, если шаги кончились."""
+    """Record the answer and show the next step — or the summary if steps ran out."""
     answers = await ctx.store.save_answer(ctx.user.id, step_id, value)
     nxt = wizard.next_step(step_id, answers)
     if nxt is None:
@@ -119,7 +119,7 @@ async def _advance(ctx: Ctx, step_id: str, value, answers: dict | None = None) -
 
 @node("s3.reg", "Заполнить анкету", "s3", label="📝 Записаться на сезон")
 async def register(ctx: Ctx) -> Screen:
-    """Начать анкету или вернуться туда, где остановились."""
+    """Start the form, or return to where it was left off."""
     app = await ctx.store.application(ctx.user.id)
     if app and app["status"] == "submitted":
         return await _summary(ctx, app["answers"], submitted=True)
@@ -180,7 +180,7 @@ async def answer_skip(ctx: Ctx) -> Screen:
 
 @node("s3.o", "Другое", "s3.reg")
 async def answer_other(ctx: Ctx) -> Screen:
-    """«Другое» переводит шаг с кнопок на свободный ввод."""
+    """"Other" switches the step from buttons to free text."""
     step = wizard.step(ctx.arg)
     if step is None:
         return Screen(alert="Шага уже нет")
@@ -191,7 +191,7 @@ async def answer_other(ctx: Ctx) -> Screen:
     return Screen(text=f"{step.prompt}\n\n{texts.S3_TYPE_IT}")
 
 
-# --- сводка и отправка ----------------------------------------------------------------
+# --- summary and submission -----------------------------------------------------------
 
 async def _summary(ctx: Ctx, answers: dict, submitted: bool = False) -> Screen:
     lines = [texts.S3_SUMMARY_DONE if submitted else texts.S3_SUMMARY, ""]
@@ -203,14 +203,14 @@ async def _summary(ctx: Ctx, answers: dict, submitted: bool = False) -> Screen:
         shown = wizard.label_of(s, answers.get(s.id), answers)
         lines.append(f"• <b>{escape(s.name)}:</b> {escape(shown)}")
         if not submitted:
-            # В кнопку кладём номер шага, а не ответ: персональным данным в
-            # callback_data не место — они видны и подделываются.
+            # The button carries a step number, not the answer: personal data has
+            # no place in callback_data — it is visible and forgeable.
             edits.append(InlineKeyboardButton(
                 text=f"✏️ {s.name}", callback_data=cb("s3.ed", str(wizard.index(s.id)))))
     if submitted:
         return Screen(text="\n".join(lines))
-    # Кнопки правки по две в ряд: тринадцать в столбик — это экран, который
-    # надо прокручивать, чтобы дойти до «отправить».
+    # Edit buttons two per row: thirteen in a column makes a screen you have to
+    # scroll to reach "submit".
     rows += [edits[i:i + 2] for i in range(0, len(edits), 2)]
     gaps = wizard.missing(answers)
     if gaps:
@@ -290,15 +290,15 @@ async def repo(ctx: Ctx) -> Screen:
     return Screen(text=texts.S3_REPO_ASK + now)
 
 
-# --- домашки сезона -------------------------------------------------------------------
+# --- season homework ------------------------------------------------------------------
 
 @node("s3.hw", "Домашки сезона", "s3", label="📚 Домашки сезона",
       visible=lambda ctx: True)
 async def homeworks(ctx: Ctx) -> Screen:
-    """Домашки по направлениям, на которые человек записан.
+    """Homework for the tracks this person signed up for.
 
-    Показываем их и здесь, а не только в момент рассылки: сообщение легко
-    потерять в переписке, а задание нужно всю неделю.
+    Shown here as well, not only at publish time: a message is easy to lose in a
+    chat, and the assignment is needed all week.
     """
     rows = await ctx.store.homeworks_for(ctx.user.id)
     if not rows:
@@ -314,7 +314,7 @@ async def homework_card(ctx: Ctx) -> Screen:
     mine = {str(h["id"]): h for h in await ctx.store.homeworks_for(ctx.user.id)}
     hw = mine.get(ctx.arg)
     if hw is None:
-        # Не «нет такой», а «не твоя»: чужую домашку по номеру не открыть.
+        # Not "no such thing" but "not yours": someone else's homework cannot be opened by number.
         return Screen(alert="Этой домашки нет среди твоих направлений")
     await ctx.store.log(ctx.user.id, "s3_hw_open", {"id": hw["id"]})
     return Screen(text=texts.S3_HW_MESSAGE.format(

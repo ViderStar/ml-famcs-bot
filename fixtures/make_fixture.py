@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Синтетический поток: вымышленные студенты, отчёты, награды.
+"""A synthetic stream: invented students, reports, awards.
 
-Зачем. Тесты прогоняются по всему потоку — по каждому студенту, каждой домашке
-и каждому замечанию. Настоящий корпус в открытый репозиторий не попадает: там
-ФИО, ссылки на личные репозитории и рецензии. Без него половина тестов не
-проверяет ничего, а зелёная половина создаёт ложную уверенность.
+Why. The tests run over the whole stream — every student, every homework, every
+finding. The real corpus is not part of the public repository: it holds names,
+links to private repositories and reviews. Without it half the tests check
+nothing, and the green half manufactures false confidence.
 
-Поэтому здесь генерируется поток такой же формы, но целиком выдуманный. Имена
-собираются из двух списков и заведомо никому не принадлежат; коды замечаний
-берутся из настоящего каталога — это учебный материал, а не персональные данные,
-и тесты обязаны видеть настоящие коды.
+So a stream of the same shape is generated here, entirely invented. Names are
+assembled from two lists and belong to nobody; finding codes come from the real
+catalog — that is teaching material, not personal data, and the tests must see
+real codes.
 
-Генерация детерминированная: один и тот же seed даёт тот же поток, поэтому
-падение теста воспроизводится.
+Generation is deterministic: the same seed gives the same stream, so a test
+failure reproduces.
 
-    python fixtures/make_fixture.py            # пересобрать fixtures/out
+    python fixtures/make_fixture.py            # rebuild fixtures/out
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ def load_rubrics():
 
 
 def fake_people(rnd: random.Random) -> list[tuple[str, str]]:
-    """Ключ и ФИО. Пара «фамилия + имя» берётся без повторов."""
+    """Key and name. Surname and given name are paired without repeats."""
     pairs = [(s, n) for s in SURNAMES for n in (NAMES_M + NAMES_F)]
     rnd.shuffle(pairs)
     out, used = [], set()
@@ -118,7 +118,7 @@ def build(rnd: random.Random, out: Path) -> None:
     telegram_rows, award_rows, excluded_rows = [], [], []
 
     for i, (key, fio) in enumerate(people):
-        # Каждый десятый — с недоступным репозиторием: бот обязан объяснять и это.
+        # Every tenth has an unreachable repository: the bot must explain that too.
         excluded = i % 10 == 9
         depth = rnd.choice([0, 1, 3, 5, 7, 9, 11, 12, 13])
         homeworks, passed = {}, 0
@@ -189,7 +189,7 @@ def build(rnd: random.Random, out: Path) -> None:
         (findings_dir / f"{key}.json").write_text(
             json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
 
-        # Карта телеграмов: часть узнаётся по username, часть — нет.
+        # The telegram map: some are recognised by username, some are not.
         surname, name = fio.split()
         if i % 4 == 3:
             telegram_rows.append([key, fio, "", "", "none", "", "регистрационную форму не заполнял"])
@@ -200,8 +200,8 @@ def build(rnd: random.Random, out: Path) -> None:
                 "no" if i % 7 == 6 else "yes", ""])
 
         if certificate:
-            # Файл и фотография — свои у каждого: бот обязан отдавать именно тот
-            # документ, что принадлежит этому человеку, и тест это проверяет.
+            # File and photo are per person: the bot must hand over exactly the
+            # document belonging to them, and a test checks that.
             award_rows.append([
                 key, fio,
                 f"fixtures/certificates/pdf/{key}.pdf",
@@ -233,8 +233,8 @@ def build(rnd: random.Random, out: Path) -> None:
     shutil.rmtree(certs, ignore_errors=True)
     (certs / "pdf").mkdir(parents=True)
     (certs / "photos").mkdir(parents=True)
-    # Заглушки, а не настоящие документы. Проверка «в PDF напечатано имя именно
-    # этого студента» на них честно пропускается — см. tests/test_awards.py.
+    # Stubs, not real documents. The check that the PDF carries this student's
+    # name skips honestly on them — see tests/test_awards.py.
     for row in award_rows:
         (ROOT.parent / row[2]).write_bytes(
             b"%PDF-1.4\n% synthetic fixture, not a real certificate\n%%EOF\n")

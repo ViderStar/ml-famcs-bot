@@ -1,9 +1,9 @@
-"""Тестер-режим администратора и мидлварь троттлинга.
+"""Admin tester mode and the throttling middleware.
 
-Троттлинг: в один прекрасный день кнопки меню перестали отвечать. Внутренняя
-мидлварь оборачивала каждый сработавший обработчик, а не событие, и когда
-онбординг отдавал кнопку дальше через SkipHandler, второй обработчик глушился
-как «слишком быстро». Отсюда — проверка, что троттлинг только внешний.
+Throttling: one fine day the menu buttons stopped answering. The inner
+middleware wrapped every handler that fired rather than the event, and when
+onboarding passed a button on through SkipHandler, the second handler was muted
+as "too fast". Hence the check that throttling is outer only.
 """
 
 from types import SimpleNamespace
@@ -13,7 +13,7 @@ import pytest
 from mlbot.__main__ import ROUTERS, build_dispatcher
 from mlbot.handlers import admin, deps, easter, start
 from mlbot.handlers.admin import _TEST_PREFIX
-from mlbot.handlers.admin import test_examples as examples  # иначе pytest соберёт как тест
+from mlbot.handlers.admin import test_examples as examples  # otherwise pytest would collect it as a test
 from mlbot.middlewares import Throttle
 from mlbot.store import Store
 
@@ -25,14 +25,14 @@ async def store(tmp_path):
     return s
 
 
-# --- троттлинг ------------------------------------------------------------------
+# --- throttling ---------------------------------------------------------------------
 
 def test_throttle_is_outer_only(cfg, course, store):
     dp = build_dispatcher(cfg, course, store)
     for observer in (dp.message, dp.callback_query):
         outer = [m for m in observer.outer_middleware if isinstance(m, Throttle)]
         inner = [m for m in observer.middleware if isinstance(m, Throttle)]
-        assert outer, "троттлинг должен стоять внешней мидлварью"
+        assert outer, "throttling must be an outer middleware"
         assert not inner, ("внутренний троттлинг глушит обработчик, которому "
                            "событие передали через SkipHandler")
 
@@ -42,7 +42,7 @@ def test_router_order_is_start_first_easter_last():
 
 
 async def test_throttle_drops_second_call_for_the_same_user():
-    """Документирует, почему внутренняя мидлварь ломала SkipHandler."""
+    """Documents why the inner middleware broke SkipHandler."""
     calls = []
 
     async def handler(event, data):
@@ -52,15 +52,15 @@ async def test_throttle_drops_second_call_for_the_same_user():
 
     th = Throttle(interval=10)
     data = {"event_from_user": SimpleNamespace(id=7)}
-    # Мидлварь глушит только настоящие Message/CallbackQuery — без валидации
-    # pydantic пустой объект собрать можно.
+    # The middleware only mutes real Message/CallbackQuery objects — pydantic can
+    # build an empty one without validation.
     event = Message.model_construct()
     await th(handler, event, data)
     await th(handler, event, data)
     assert len(calls) == 1
 
 
-# --- тестер-режим -----------------------------------------------------------------
+# --- tester mode ----------------------------------------------------------------------
 
 @pytest.mark.parametrize("text,expected", [
     ("Тест Иванов Иван", "Иванов Иван"),
@@ -76,7 +76,7 @@ def test_prefix_parsing(text, expected):
 
 
 def test_prefix_does_not_catch_ordinary_words():
-    # «Тестирование» и «тестовый» — это не команда.
+    # "Тестирование" and "тестовый" are not the command.
     assert _TEST_PREFIX.match("Тестирование модели") is None
     assert _TEST_PREFIX.match("протест") is None
 
@@ -86,7 +86,7 @@ def test_examples_are_one_with_and_one_without_certificate(course):
     assert cert.certificate and cert.ok
     assert not fail.certificate and fail.ok and fail.passed > 0
     assert cert.key != fail.key
-    # Детерминированно: подсказка в приветствии не должна прыгать.
+    # Deterministic: the hint in the greeting must not jump around.
     assert examples(course) == (cert, fail)
 
 
@@ -98,7 +98,7 @@ async def test_view_overrides_binding_and_survives_reload(course, store, tmp_pat
     await store.set_test_view(admin_id, cert.key)
     assert (await deps.student_of(admin_id, course, store)).key == cert.key
 
-    # Переключение и повторное открытие базы: режим живёт в SQLite.
+    # Switching and reopening the database: the mode lives in SQLite.
     await store.set_test_view(admin_id, fail.key)
     reopened = Store(store.path)
     await reopened.init()
@@ -109,7 +109,7 @@ async def test_view_overrides_binding_and_survives_reload(course, store, tmp_pat
 
 
 async def test_view_does_not_block_the_real_student(course, store):
-    """Тестер-режим не занимает запись: студент может привязаться параллельно."""
+    """Tester mode does not occupy the record: the student can bind in parallel."""
     cert, _ = examples(course)
     await store.set_test_view(1, cert.key)
     await store.bind(555, cert.key, "student", "Студент")
@@ -157,15 +157,15 @@ async def test_admin_enters_and_leaves_test_mode(cfg, course, store):
     assert await store.test_view(admin_id) is None
 
 
-# --- права по username ------------------------------------------------------------
+# --- rights by username ----------------------------------------------------------------
 
 def test_admin_by_username(cfg):
     from dataclasses import replace
 
     c = replace(cfg, admin_ids=frozenset({1}), admin_usernames=frozenset({"teacher_one"}))
-    assert c.is_admin(1)                              # по id, как было
-    assert c.is_admin(777, "Teacher_One")                # регистр не важен
-    assert c.is_admin(777, "@teacher_one")               # с собачкой тоже
+    assert c.is_admin(1)                              # by id, as before
+    assert c.is_admin(777, "Teacher_One")                # case does not matter
+    assert c.is_admin(777, "@teacher_one")               # with an @ too
     assert not c.is_admin(777, "someone_else")
     assert not c.is_admin(777, None)
     assert not c.is_admin(777)
@@ -196,7 +196,7 @@ async def test_admin_by_username_reaches_test_mode(cfg, course, store):
         c, course, store)
     assert await store.test_view(42) == cert.key
 
-    # А посторонний с похожим именем — нет.
+    # But an outsider with a similar name does not.
     await admin.test_mode(
         Msg(text=f"Тест {cert.fio}", from_user=SimpleNamespace(id=43, username="teacher_one2")),
         c, course, store)
@@ -213,7 +213,7 @@ def test_admin_menu_offers_the_tester_button():
 
 
 def test_certificate_rule_does_not_explain_why_hw07_is_ungraded(course):
-    """Из студенческого текста убрано, что по деревьям задания не выдавалось."""
+    """The student-facing text no longer claims no decision-tree assignment was issued."""
     from mlbot import texts
 
     rule = texts.CERT_RULE.format(total=course.total_graded, need=course.required_passed)

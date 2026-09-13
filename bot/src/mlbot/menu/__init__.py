@@ -1,7 +1,7 @@
-"""Дерево меню: реестр узлов (`core`), экраны, точка входа (`router`).
+"""The menu tree: node registry (`core`), screens, entry point (`router`).
 
-Имя `router` здесь — модуль, а не объект Router: точка входа собирается как
-`menu.router.router`, так же как у остальных обработчиков.
+The name `router` here is a module, not a Router object: the entry point is
+`menu.router.router`, the same shape as the other handlers.
 """
 
 from . import admin, core, router, screens, season3  # noqa: F401

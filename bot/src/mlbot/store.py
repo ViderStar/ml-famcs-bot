@@ -1,7 +1,7 @@
-"""Состояние бота в SQLite: привязки, события, обращения в поддержку.
+"""Bot state in SQLite: bindings, events, support tickets.
 
-Оценки и разборы здесь не хранятся — они читаются с диска. В базе только то,
-что порождает сам бот.
+Grades and reviews are not kept here — they are read from disk. The database
+holds only what the bot itself produces.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ class Binding:
     username: str | None
     tg_name: str | None
     bound_at: str
-    demo: int = 0  # вымышленный аккаунт для проверки бота
+    demo: int = 0  # fictional account used to walk the bot
 
 
 class Store:
@@ -31,10 +31,10 @@ class Store:
         self.path = Path(path)
 
     async def init(self) -> None:
-        """Догоняет схему до последней версии, сохранив копию непустой базы."""
+        """Brings the schema up to the latest version, keeping a copy of a non-empty database."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        # Размер смотрим до подключения: aiosqlite создаёт файл сама, и после
-        # этого «была ли база» уже не отличить от «только что завели».
+        # Size is checked before connecting: aiosqlite creates the file itself, and
+        # after that "was there a database" is indistinguishable from "just made one".
         existed = self.path.exists() and self.path.stat().st_size > 0
         async with aiosqlite.connect(self.path) as db:
             have = await migrations.version(db)
@@ -43,7 +43,7 @@ class Store:
             await migrations.apply(db)
 
     async def sent_awards(self) -> list[dict]:
-        """Кому уже ушла рассылка с сертификатом — чтобы не отправить дважды."""
+        """Who already got the certificate mailing — so nobody gets it twice."""
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute(
@@ -52,11 +52,11 @@ class Store:
                 rows = await cur.fetchall()
         return [dict(r) for r in rows]
 
-    # --- заявки на доступ -------------------------------------------------------
+    # --- access claims ----------------------------------------------------------
 
     async def add_claim(self, tg_id: int, student_key: str, username: str | None,
                         tg_name: str | None, expected: str | None) -> int:
-        """Заявка на ручную проверку. Повторная от того же аккаунта не дублируется."""
+        """A claim for manual review. A repeat from the same account is not duplicated."""
         async with aiosqlite.connect(self.path) as db:
             async with db.execute(
                 "SELECT id FROM claims WHERE tg_id = ? AND student_key = ? AND status = 'pending'",
@@ -94,7 +94,7 @@ class Store:
             await db.execute("UPDATE claims SET status = ? WHERE id = ?", (status, claim_id))
             await db.commit()
 
-    # --- тестер-режим -----------------------------------------------------------
+    # --- tester mode ------------------------------------------------------------
 
     async def set_test_view(self, tg_id: int, student_key: str) -> None:
         async with aiosqlite.connect(self.path) as db:
@@ -119,7 +119,7 @@ class Store:
             await db.execute("DELETE FROM test_views WHERE tg_id = ?", (tg_id,))
             await db.commit()
 
-    # --- привязки ---------------------------------------------------------------
+    # --- bindings -----------------------------------------------------------------
 
     async def bind(self, tg_id: int, student_key: str, username: str | None,
                    tg_name: str | None, demo: bool = False) -> None:
@@ -134,7 +134,7 @@ class Store:
             await db.commit()
 
     async def mark_demo(self, tg_id: int, demo: bool = True) -> None:
-        """Пометить аккаунт вымышленным: он исчезает из сводок и рассылок «всем»."""
+        """Mark an account fictional: it drops out of summaries and "everyone" broadcasts."""
         async with aiosqlite.connect(self.path) as db:
             await db.execute("UPDATE bindings SET demo = ? WHERE tg_id = ?", (int(demo), tg_id))
             await db.commit()
@@ -161,8 +161,8 @@ class Store:
             await db.commit()
 
     async def all_bindings(self, include_demo: bool = False) -> list[Binding]:
-        """Настоящие привязки. Демо приходится исключать по умолчанию: иначе
-        вымышленный аккаунт попадёт и в «Кто привязался», и в адресаты рассылки."""
+        """Real bindings. Demo has to be excluded by default: otherwise a fictional
+        account shows up both in "who bound" and in broadcast recipients."""
         where = "" if include_demo else " WHERE demo = 0"
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
@@ -171,7 +171,7 @@ class Store:
         return [Binding(**dict(r)) for r in rows]
 
     async def binding_number(self, tg_id: int) -> int:
-        """Порядковый номер привязки — для пасхалки «ты N-й»."""
+        """Binding number — for the "you are Nth" easter egg."""
         async with aiosqlite.connect(self.path) as db:
             async with db.execute(
                 "SELECT COUNT(*) FROM bindings WHERE demo = 0 AND bound_at <= "
@@ -180,14 +180,14 @@ class Store:
                 row = await cur.fetchone()
         return int(row[0]) if row else 0
 
-    # --- события ----------------------------------------------------------------
+    # --- events ---------------------------------------------------------------------
 
     async def log(self, tg_id: int, kind: str, payload: dict | None = None) -> None:
-        """Событие. Признак «демо» вычисляется тут же подзапросом.
+        """An event. The demo flag is computed right here by a subquery.
 
-        Иначе его пришлось бы прокидывать через полсотни вызовов `log` в
-        обработчиках — и достаточно забыть один, чтобы выдуманные нажатия
-        просочились в статистику.
+        Otherwise it would have to be threaded through fifty `log` calls in the
+        handlers — and forgetting one is enough for invented clicks to leak into
+        the statistics.
         """
         async with aiosqlite.connect(self.path) as db:
             await db.execute(
@@ -226,7 +226,7 @@ class Store:
                 rows = await cur.fetchall()
         return {r[0]: r[1] for r in rows}
 
-    # --- поддержка --------------------------------------------------------------
+    # --- support ----------------------------------------------------------------------
 
     async def add_support(self, tg_id: int, username: str | None, text: str) -> int:
         async with aiosqlite.connect(self.path) as db:
@@ -238,8 +238,8 @@ class Store:
             return int(cur.lastrowid)
 
     async def answer_support(self, ticket_id: int) -> dict | None:
-        """Пометить отвеченным. Раньше `answered` только читалось — снять флаг
-        было нечем, и список открытых обращений рос вечно."""
+        """Mark as answered. `answered` used to be read-only — there was no way to
+        clear the flag, and the list of open tickets grew forever."""
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute("SELECT * FROM support WHERE id = ?", (ticket_id,)) as cur:
@@ -259,16 +259,16 @@ class Store:
                 rows = await cur.fetchall()
         return [dict(r) for r in rows]
 
-    # --- рассылки ---------------------------------------------------------------
+    # --- broadcasts ---------------------------------------------------------------------
 
     async def create_broadcast(self, created_by: int, audience: str, kind: str,
                                body: str | None, targets: list[tuple[int, str]],
                                sandbox: bool, audience_arg: str | None = None,
                                src: tuple[int, int] | None = None) -> int:
-        """Черновик и список адресатов — одной транзакцией.
+        """Draft and recipient list in one transaction.
 
-        Список замораживается здесь и больше не пересчитывается: возобновление
-        обязано дослать ровно остаток, а не тех, кто привязался за это время.
+        The list is frozen here and never recomputed: resuming must send exactly
+        the remainder, not the people who bound in the meantime.
         """
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
@@ -294,10 +294,10 @@ class Store:
         return dict(row) if row else None
 
     async def start_broadcast(self, cast_id: int) -> bool:
-        """Перевод в «отправляется» — атомарный.
+        """The move to "sending" is atomic.
 
-        Поэтому двойное нажатие кнопки безвредно: второе просто не находит, что
-        переводить, и возвращает False.
+        That is why a double click is harmless: the second one simply finds
+        nothing to move and returns False.
         """
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
@@ -322,7 +322,7 @@ class Store:
             await db.commit()
 
     async def stall_running(self) -> list[int]:
-        """При старте: то, что «отправлялось», на деле оборвалось вместе с ботом."""
+        """At startup: whatever was "sending" actually died together with the bot."""
         async with aiosqlite.connect(self.path) as db:
             async with db.execute(
                 "SELECT id FROM broadcasts WHERE status = 'sending'") as cur:
@@ -366,10 +366,10 @@ class Store:
                 rows = await cur.fetchall()
         return [dict(r) for r in rows]
 
-    # --- что бот знает о человеке -----------------------------------------------
+    # --- what the bot knows about a person -------------------------------------------
 
     async def about(self, tg_id: int) -> dict:
-        """Всё, что в базе связано с этим аккаунтом. Для экрана «Мои данные»."""
+        """Everything in the database tied to this account. For the "My data" screen."""
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             out: dict = {"tg_id": tg_id}
@@ -391,10 +391,10 @@ class Store:
         return out
 
     async def forget(self, tg_id: int) -> dict[str, int]:
-        """Удалить привязку, историю нажатий, заявки и тестер-режим.
+        """Delete the binding, the click history, the claims and the tester mode.
 
-        Обращения в поддержку остаются: это переписка с живым человеком, и
-        стереть её в одностороннем порядке нельзя. Экран говорит об этом прямо.
+        Support tickets stay: that is correspondence with a living person, and
+        erasing it unilaterally is not ours to do. The screen says so plainly.
         """
         removed: dict[str, int] = {}
         async with aiosqlite.connect(self.path) as db:
@@ -404,15 +404,15 @@ class Store:
             await db.commit()
         return removed
 
-    # --- люди: username хранится, но ключом не бывает ------------------------------
+    # --- people: username is stored but is never a key --------------------------------
 
     async def touch_person(self, tg_id: int, username: str | None,
                            tg_name: str | None) -> bool:
-        """Запомнить аккаунт и записать смену username в журнал.
+        """Remember the account and log a username change.
 
-        Username освобождается и достаётся другому человеку — во втором сезоне
-        ровно на этом посторонний аккаунт открыл чужой разбор. Поэтому он здесь
-        атрибут и история, а связывает всё `tg_id`.
+        A username gets released and goes to someone else — in season 2 that is
+        exactly how an outsider opened another student's review. So here it is an
+        attribute and a log, while `tg_id` is what ties everything together.
         """
         changed = False
         async with aiosqlite.connect(self.path) as db:
@@ -443,7 +443,7 @@ class Store:
                 "SELECT * FROM identity_history WHERE tg_id = ? ORDER BY at", (tg_id,)) as cur:
                 return [dict(r) for r in await cur.fetchall()]
 
-    # --- анкета третьего сезона ----------------------------------------------------
+    # --- season 3 application ---------------------------------------------------------
 
     async def application(self, tg_id: int) -> dict | None:
         async with aiosqlite.connect(self.path) as db:
@@ -459,11 +459,11 @@ class Store:
 
     async def save_answer(self, tg_id: int, step_id: str | None, value,
                           next_step: str | None = None) -> dict:
-        """Записать ответ в черновик. Черновик в SQLite, а не в FSM.
+        """Write an answer into the draft. The draft is in SQLite, not in FSM state.
 
-        `MemoryStorage` не переживает перезапуск контейнера, а анкету на
-        двенадцать шагов заполняют не за минуту — потерять её на середине
-        значит потерять человека.
+        `MemoryStorage` does not survive a container restart, and a twelve-step
+        form is not filled in a minute — losing it halfway means losing the
+        person.
         """
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
@@ -486,11 +486,11 @@ class Store:
 
     async def submit_application(self, tg_id: int, tracks: list[str],
                                  sinks: tuple[str, ...] = ("csv", "notion")) -> bool:
-        """Анкета и задания приёмникам — одной транзакцией.
+        """The application and the sink tasks in one transaction.
 
-        Между «анкета сохранена» и «задание создано» нет окна, в которое можно
-        упасть: «не потерять анкету» выполняется устройством, а не надеждой на
-        try/except вокруг сетевого вызова.
+        There is no window between "form saved" and "task created" to crash in:
+        "do not lose the form" holds by construction, not by hope placed in a
+        try/except around a network call.
         """
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
@@ -539,7 +539,7 @@ class Store:
                 "SELECT track_id, COUNT(*) FROM s3_enrollments GROUP BY track_id") as cur:
                 return {r[0]: r[1] for r in await cur.fetchall()}
 
-    # --- очередь синхронизации -----------------------------------------------------
+    # --- sync queue ---------------------------------------------------------------------
 
     async def outbox_batch(self, limit: int = 20) -> list[dict]:
         async with aiosqlite.connect(self.path) as db:
@@ -580,7 +580,7 @@ class Store:
             await db.commit()
 
     async def outbox_failed(self, task: dict, error: str, limit: int = 8) -> str:
-        """Неудача. После `limit` попыток — «разошлось» и флаг админу, а не тишина."""
+        """A failure. After `limit` attempts: "diverged" and a flag for the admin, not silence."""
         tries = int(task["tries"]) + 1
         status = "diverged" if tries >= limit else "pending"
         async with aiosqlite.connect(self.path) as db:
@@ -596,7 +596,7 @@ class Store:
         return status
 
     async def outbox_skip(self, task_id: int) -> None:
-        """Задание устарело: эту запись уже доставили более свежей ревизией."""
+        """The task is stale: this record already arrived with a newer revision."""
         async with aiosqlite.connect(self.path) as db:
             await db.execute("UPDATE sync_outbox SET status = 'done' WHERE id = ?",
                              (task_id,))
@@ -616,13 +616,13 @@ class Store:
                 (limit,)) as cur:
                 return [dict(r) for r in await cur.fetchall()]
 
-    # --- репозитории третьего сезона ------------------------------------------------
+    # --- season 3 repositories ------------------------------------------------------------
 
     async def repo_check(self, url: str, ttl_hours: int = 6) -> dict | None:
-        """Свежий результат проверки, если он есть.
+        """A fresh check result, if there is one.
 
-        Кэш нужен не для скорости: без токена GitHub даёт 60 запросов в час, и
-        поток в двести человек выбирает лимит в день старта.
+        The cache is not about speed: without a token GitHub allows 60 requests
+        an hour, and two hundred students exhaust that on launch day.
         """
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
@@ -660,13 +660,13 @@ class Store:
                 row = await cur.fetchone()
         return dict(row) if row else None
 
-    # --- домашки третьего сезона ------------------------------------------------------
+    # --- season 3 homework --------------------------------------------------------------
 
     async def recipients_for_tracks(self, tracks: list[str]) -> list[tuple[int, str]]:
-        """Кому уйдёт домашка. Дедупликация по `tg_id` — не по паре с направлением.
+        """Who the homework goes to. Deduplicated by `tg_id`, not by (track, person).
 
-        Студент на CV и на DL получает **одно** сообщение, а не два: иначе
-        подписка на второе направление наказывала бы дублями.
+        A student on both CV and DL gets **one** message, not two: otherwise
+        signing up for a second track would be punished with duplicates.
         """
         if not tracks:
             return []
@@ -718,7 +718,7 @@ class Store:
 
     async def publish_homework(self, hw_id: int,
                                recipients: list[tuple[int, str]]) -> bool:
-        """Заморозить список получателей и пометить домашку опубликованной."""
+        """Freeze the recipient list and mark the homework published."""
         async with aiosqlite.connect(self.path) as db:
             cur = await db.execute(
                 "UPDATE s3_homeworks SET status = 'published', "
@@ -755,7 +755,7 @@ class Store:
                 return {r[0]: r[1] for r in await cur.fetchall()}
 
     async def homeworks_for(self, tg_id: int) -> list[dict]:
-        """Опубликованные домашки по направлениям этого человека."""
+        """Published homework for this person's tracks."""
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
             async with db.execute(

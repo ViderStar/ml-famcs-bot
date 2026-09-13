@@ -1,4 +1,4 @@
-"""Каталог: признак kind — методология или гигиена ноутбука."""
+"""The catalog: the kind flag — methodology or notebook hygiene."""
 
 import re
 

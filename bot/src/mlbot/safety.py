@@ -1,22 +1,22 @@
-"""Предохранитель: в песочнице ни одно сообщение не уходит настоящему студенту.
+"""Safety catch: in the sandbox no message reaches a real student.
 
-Второй сезон закончился, у бота 74 живые привязки, и любая проверка нового
-функционала — это риск разослать людям мусор. Поэтому перехват стоит **на
-транспорте**, а не в обработчиках: обработчик можно забыть обернуть, а мимо
-сессии не проходит ни один вызов Telegram API.
+Season 2 is over, the bot holds 74 live bindings, and every test of new
+behaviour risks mailing junk to real people. So the interception sits **on the
+transport**, not in handlers: a handler is easy to forget to wrap, but no
+Telegram API call bypasses the session.
 
-Почему именно request-middleware сессии, а не что-то другое:
+Why a session request-middleware and nothing else:
 
-* мидлварь диспетчера видит только входящие апдейты — исходящие мимо неё;
-* подкласс `Bot` с переопределёнными `send_message` и прочими не поможет:
-  `message.answer()` и `call.message.edit_text()` идут не через них, а через
-  `bot(method)`. Дырка появилась бы при первом же новом вызове;
-* `Bot.session.middleware` оборачивает КАЖДЫЙ вызов API — это единственная
-  точка, где перехват полный по построению.
+* a dispatcher middleware only sees incoming updates — outgoing calls miss it;
+* a `Bot` subclass overriding `send_message` and friends does not help:
+  `message.answer()` and `call.message.edit_text()` go through `bot(method)`,
+  not through them. The first new call would open a hole;
+* `Bot.session.middleware` wraps EVERY API call — the only point where the
+  interception is complete by construction.
 
-Сообщение постороннему не проглатывается, а перенаправляется администратору с
-пометкой. Так у предохранителя two в одном: он и не пускает письмо студенту, и
-показывает преподавателю ровно то, что ушло бы.
+A message to an outsider is not swallowed but redirected to the admin with a
+tag. That gives the catch two jobs at once: it keeps the letter away from the
+student and shows the teacher exactly what would have gone out.
 """
 
 from __future__ import annotations
@@ -34,23 +34,23 @@ log = logging.getLogger("mlbot.safety")
 
 BADGE = "🧪 ПЕСОЧНИЦА"
 
-# Методы, которые создают сообщение в чужом чате. Их перенаправляем.
+# Methods that create a message in someone else's chat. These get redirected.
 _SENDING = ("send", "copy", "forward")
-# Методы без адресата вообще: отвечают на колбэк, ставят команды, спрашивают себя.
+# Methods with no addressee at all: answering a callback, setting commands, self-query.
 _NO_TARGET = ("answercallbackquery", "getme", "setmycommands", "deletewebhook",
               "getupdates", "setwebhook", "close", "logout", "getfile")
 
 
 class BlockedBySafeMode(RuntimeError):
-    """Правка или удаление сообщения в чужом чате. Это всегда ошибка в коде.
+    """Editing or deleting a message in someone else's chat. Always a bug.
 
-    В отличие от отправки, тут перенаправлять некуда: редактировать можно только
-    то сообщение, которое уже существует. Значит, обработчик решил, что владеет
-    чужим чатом, и молчать об этом нельзя.
+    Unlike sending, there is nowhere to redirect: you can only edit a message
+    that already exists. So a handler decided it owns a foreign chat, and that
+    must not stay quiet.
     """
 
     def __init__(self, method: str, chat_id: Any) -> None:
-        super().__init__(f"песочница: {method} в чужой чат {chat_id}")
+        super().__init__(f"sandbox: {method} into foreign chat {chat_id}")
         self.method = method
         self.chat_id = chat_id
 
@@ -60,7 +60,7 @@ def api_name(method: TelegramMethod) -> str:
 
 
 def target_chat(method: TelegramMethod) -> Any | None:
-    """Кому адресован вызов. None — адресата нет (значит, безопасно)."""
+    """Who the call is addressed to. None means no addressee, hence safe."""
     return getattr(method, "chat_id", None)
 
 
@@ -73,17 +73,17 @@ def has_no_target(method: TelegramMethod) -> bool:
 
 
 def badge(cfg: Config) -> str:
-    """Пометка для экранов. Пустая строка, когда предохранитель снят."""
+    """Tag for screens. Empty string once the catch is released."""
     return BADGE if cfg.safe_mode else ""
 
 
 class SafeMode(BaseRequestMiddleware):
-    """Перехватывает исходящие вызовы, пока включён режим песочницы."""
+    """Intercepts outgoing calls while sandbox mode is on."""
 
     def __init__(self, cfg: Config) -> None:
         self.cfg = cfg
         self.intercepted = 0
-        self.last: tuple[Any, str] | None = None      # (кому бы ушло, метод)
+        self.last: tuple[Any, str] | None = None      # (who it would reach, method)
 
     @property
     def allowed(self) -> frozenset[int]:
@@ -91,20 +91,20 @@ class SafeMode(BaseRequestMiddleware):
 
     @property
     def sink(self) -> int | None:
-        """Куда перенаправлять. Первый администратор по возрастанию id."""
+        """Where to redirect. The first admin by ascending id."""
         ids = sorted(self.allowed)
         return ids[0] if ids else None
 
     def _redirect(self, method: TelegramMethod, chat_id: Any) -> TelegramMethod:
-        """Копия вызова, адресованная админу, с пометкой в тексте или подписи."""
+        """A copy of the call addressed to the admin, tagged in text or caption."""
         note = f"{BADGE} · ушло бы: id {chat_id}\n\n"
         update: dict[str, Any] = {"chat_id": self.sink}
         if getattr(method, "text", None) is not None:
             update["text"] = note + str(method.text)
         elif getattr(method, "caption", None) is not None:
             update["caption"] = note + str(method.caption)
-        # У методов без текста (например, sendChatAction) пометку вставить некуда —
-        # достаточно того, что адресат подменён.
+        # Methods without text (sendChatAction, say) have nowhere to put the tag —
+        # swapping the addressee is enough.
         return method.model_copy(update=update)
 
     async def __call__(self, make_request, bot: Bot, method: TelegramMethod):
@@ -118,7 +118,7 @@ class SafeMode(BaseRequestMiddleware):
         try:
             allowed = int(chat_id) in self.allowed
         except (TypeError, ValueError):
-            allowed = False                     # @канал или что-то нечисловое
+            allowed = False                     # @channel or something non-numeric
         if allowed:
             return await make_request(bot, method)
 
@@ -126,7 +126,7 @@ class SafeMode(BaseRequestMiddleware):
         self.last = (chat_id, api_name(method))
 
         if is_sending(method) and self.sink is not None:
-            log.info("песочница: %s для %s перенаправлен админу", api_name(method), chat_id)
+            log.info("sandbox: %s for %s redirected to the admin", api_name(method), chat_id)
             return await make_request(bot, self._redirect(method, chat_id))
 
         raise BlockedBySafeMode(api_name(method), chat_id)

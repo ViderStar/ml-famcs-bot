@@ -1,416 +1,322 @@
-# mlbot — телеграм-бот курса ML FAMCS
+# mlbot — the course Telegram bot
 
-Отдаёт студентам их разбор домашек с объяснениями и ссылками, показывает
-преподавателям статистику по потоку, рассылает сообщения из интерфейса.
+Gives students their homework review with explanations and links, gives teachers
+stream statistics, and sends broadcasts from the interface.
 
-## Предохранитель: `SAFE_MODE`
+Everything the bot says is Russian — that is the language of the course. This
+document, the code and the tests are English.
 
-**Включён по умолчанию.** Пока он стоит, ни одно сообщение не может уйти
-постороннему: письмо студенту разворачивается на администратора с пометкой
-`🧪 ПЕСОЧНИЦА · ушло бы: id 12345`, то есть видно ровно то письмо, которое ушло
-бы человеку. Попытка отредактировать чужое сообщение падает громко — перенести
-правку некуда, значит это ошибка в коде.
+## Safety catch: `SAFE_MODE`
 
-Перехват стоит [мидлварью сессии](src/mlbot/safety.py), а не диспетчера: через
-`bot.session` проходит **каждый** вызов Telegram API, включая `message.answer()`
-и `edit_text()`, мимо которых прошла бы и мидлварь диспетчера (она видит только
-входящие), и подкласс `Bot`.
+**On by default.** While it is on, no message can reach an outsider: a letter to
+a student is redirected to the admin tagged `🧪 ПЕСОЧНИЦА · ушло бы: id 12345`,
+so you see exactly the letter that would have gone out. Editing someone else's
+message fails loudly — there is nowhere to redirect an edit, so it is a bug.
 
-Второй замок — на уровне рассылок: в песочнице реестр аудиторий отдаёт только
-«себе» и «вымышленным аккаунтам», так что списка настоящих студентов рассылке
-неоткуда взять даже при ошибке в предохранителе.
+The interception is a [session middleware](src/mlbot/safety.py), not a
+dispatcher one: **every** Telegram API call goes through `bot.session`,
+including `message.answer()` and `edit_text()`, which both a dispatcher
+middleware (it only sees incoming updates) and a `Bot` subclass would miss.
 
-Снимается только переменной окружения, кнопки в интерфейсе намеренно нет:
+Second lock, at the broadcast level: in the sandbox the audience registry only
+offers "me" and "demo accounts", so a broadcast has nowhere to get a list of
+real students even if the catch itself breaks.
+
+Released only through the environment; there is deliberately no button:
 
 ```
-SAFE_MODE=0   # в bot/.env, затем docker compose up -d
+SAFE_MODE=0   # in bot/.env, then docker compose up -d
 ```
 
-## Вымышленные студенты
+## Fictional students
 
-«🛠 Админка» → «🛠 Отладка» → «🧪 Вымышленные студенты» — четыре выдуманные
-записи, закрывающие все состояния экранов: выпускник с сертификатом и фото,
-недобравший с критичными замечаниями, исключённый и не сдавший ничего.
+*Admin → Debug → Fictional students* — four invented records covering every
+screen state: a graduate with a certificate and a photo, someone who fell short
+with critical findings, an excluded student, and one who submitted nothing.
 
-Они лежат в [`demo/findings`](demo/findings) отдельным объектом `Course`, а не
-подмешиваются к настоящим 205 — иначе их пришлось бы не забыть отфильтровать в
-десяти местах `data.py`, и забытый фильтр проявился бы только тихо съехавшей
-медианой. Их нажатия помечаются в базе (`events.demo`) и не попадают ни в
-сводку, ни в «Что читают». Пересобрать: `python demo/make_demo.py`.
+They live in [`demo/findings`](demo/findings) as a separate `Course` object
+rather than mixed into the real corpus. Mixed in, they would have to be filtered
+out in ten places in `data.py`, and a forgotten filter would show up only as a
+quietly shifted median. Their clicks are flagged in the database
+(`events.demo`) and stay out of both the summary and "what people read".
+Rebuild with `python demo/make_demo.py`.
 
-## Регистрация бота
+## Setup
 
-Всё, что нужно сделать руками, — получить токен у @BotFather. Остальное сделает
-скрипт: проверит токен, сам определит ваш telegram-id и запишет `.env`.
+Get a token from @BotFather; the script does the rest — validates the token,
+finds your telegram id, writes `.env` with mode 600.
 
 ```bash
 ./setup.sh
 ```
 
-Он попросит:
+`ADMIN_IDS` is a comma-separated list of telegram ids. `/id` tells you yours and
+whether the bot sees you as an admin.
 
-1. Открыть **@BotFather**, отправить `/newbot` и придумать имя. Юзернейм должен
-   заканчиваться на `bot` — например `ml_famcs_results_bot`. В ответ придёт
-   строка вида `8123456789:AAF...` — это и есть токен.
-2. Вставить токен. Ввод скрыт: токен не попадёт ни в историю командной строки,
-   ни в вывод — только в `.env` с правами `600`.
-3. Нажать «Начать» в своём боте — скрипт сам вытащит ваш id и запишет его в
-   `ADMIN_IDS`. Если не получится, спросит id вручную (узнать: @userinfobot).
+`ADMIN_USERNAMES` does the same by username. It is weaker — a released username
+can be claimed by anyone — so as soon as someone writes to the bot, take their
+`/id` and move them to `ADMIN_IDS`.
 
-Что стоит настроить в @BotFather дополнительно, всё необязательно:
+Admins are not pushed through student binding: a teacher has no student record.
+They get the Admin button straight away and can still bind as a student by
+sending a repository link.
 
-| Команда | Зачем |
+## Why a homework did not pass
+
+Homework passes with **no critical findings** and at least `hw_pass_ratio` (70%)
+of the required items closed. Nothing else affects the verdict: major and minor
+findings never fail a topic.
+
+The bot says this outright instead of leaving a list of thirty findings that
+reads like thirty reasons for failure:
+
+* the topic card carries a "why it did not pass" block and a separate line
+  saying the remaining findings did not matter;
+* each finding is marked "this cost the verdict" or "this did not";
+* "what to improve" opens with the reasons work failed;
+* the results screen explains the gap between "submitted 12" and "passed 6".
+
+The reasoning lives in [`views.blockers`](src/mlbot/views.py) and mirrors the
+grader's decision. `test_verdict_explanation_agrees_with_the_recorded_status`
+runs over every submission in the stream and fails if a failed topic has no
+reason.
+
+## Menu: a tree, not forty buttons
+
+Three buttons under the input field, plus Admin for teachers:
+
+```
+🎓 Season 2           🔎 Reference          🆘 Help
+├─ Results            ├─ Common mistakes    ├─ Write to the teacher
+│   └─ Strengths      └─ hw01…hw13          ├─ Who am I to the bot
+├─ Homework                                 ├─ My data
+│   └─ topic → finding (◀ 3/7 ▶)            └─ Commands
+├─ What to improve
+├─ Season materials   ← slides and tasks for every topic, submitted or not
+└─ Certificate → PDF, ceremony photo
+```
+
+The tree is a node registry in [`menu/core.py`](src/mlbot/menu/core.py): one
+node is one `@node(...)` with its renderer beside it. `callback_data` is
+assembled **in one place** (`cb()`), "back" is derived from the declared parent,
+and the root keyboard is built from the root's children by visibility — so there
+are no longer separate lists for guests and admins.
+
+The point of a registry is that you can **walk** it. Tests traverse the whole
+tree and check nodes that did not exist when the test was written: connectivity,
+absence of cycles, the 64-byte `callback_data` budget, and that every "back"
+label matches its real parent.
+
+Old buttons (`hw:hw03`, `ref:art:…`) still work: they live in chat history
+forever, and [`menu/router.py`](src/mlbot/menu/router.py) translates them into
+nodes — translates, rather than implementing the screen a second time.
+
+Every button is mirrored by a command (`/results`, `/homeworks`, `/improve`,
+`/materials`, `/certificate`, `/reference`, `/support`, `/whoami`).
+`test_every_menu_command_has_a_handler` keeps the list honest.
+
+## Admin panel
+
+Four groups instead of eleven buttons in a column: Analytics, People,
+Broadcasts, Season 3, Debug.
+
+Rights come from the [`AdminOnly` filter](src/mlbot/menu/filters.py) on both
+router observers plus node visibility — not from an `if not _is_admin(...)` line
+in every handler. That line gets forgotten, and a test that greps for it does
+not notice. That an outsider gets no admin button at all is verified by
+traversal: the bot shows an admin the whole tree, and a stranger's account
+presses every button found.
+
+## Broadcasts
+
+*Admin → Broadcasts* → pick an audience → write the message → preview → send.
+Formatting survives because the bot reads `message.html_text`, not
+`message.text` — otherwise bold and links typed in Telegram would vanish
+silently, and a stray `<` would break delivery for everyone at once.
+
+Audiences are a registry
+([`broadcast/audiences.py`](src/mlbot/broadcast/audiences.py)): everyone bound,
+with a certificate, without one, demo accounts, just me. The "with a
+certificate" query is the same one `announce.py` uses — it imports it from here,
+and a test pins that.
+
+Two properties the schema exists for:
+
+* **the recipient list is frozen** at confirmation, in one transaction with
+  creating the broadcast. Resuming sends exactly the remainder and never
+  re-decides the audience — otherwise people who bound between the start and the
+  crash would be swept in;
+* **the composite primary key** `(broadcast_id, tg_id)` makes a duplicate
+  physically impossible. The draft → sending transition is atomic, so a double
+  click is harmless.
+
+Sending runs as a background task with progress. Someone who blocked the bot is
+marked and not retried. A restart mid-broadcast marks it interrupted and tells
+the admin; the history screen has a resume button.
+
+The bot cannot write to unbound people — Telegram does not allow writing first.
+Their count is shown on the audience screen as a separate line.
+
+## Season 3: registration through the bot
+
+February 2027, narrow tracks for people past the basics: CV, NLP, RecSys, DL,
+time series, RL, speech. Each has its own teacher and 6–8 sessions; several can
+be chosen. Tracks are described in
+[`season3/tracks.toml`](src/mlbot/season3/tracks.toml) and mounted into the
+container, so a teacher or session count changes without a rebuild.
+
+**The key simplification.** Registration goes through the bot, so `tg_id` is
+known from the first message and cannot be forged. The whole class of problems
+that produced access claims and name-based matching simply does not arise;
+`username` is stored but is **never a key** — only an attribute and a log
+(`identity_history`), because a released username goes to someone else.
+
+**The form is data, not twelve handlers.** Steps are tuples in
+[`season3/wizard.py`](src/mlbot/season3/wizard.py): what to ask, how it is
+answered, how to validate. Every field of last year's Google form is there, plus
+tracks.
+
+Scales, university and year are answered with **buttons**. This is not about
+convenience: the numeric fields of the old form contain "Бро", "1.5", "between 2
+and 3" and a whole sentence about convolutional architectures. That is how a
+free-text field behaves, not how respondents do; a button makes such an answer
+impossible.
+
+The draft lives in SQLite, not in FSM state: `MemoryStorage` does not survive a
+container restart, and a twelve-step form is not filled in a minute.
+
+**Three sinks through a queue, not try/except.** Saving the form and enqueueing
+the sink tasks happen in **one transaction**: there is no window between "form
+saved" and "task created" to crash in, so "do not lose the form" holds by
+construction rather than by hope.
+
+| Sink | How |
 |---|---|
-| `/setdescription` | текст на пустом экране до первого сообщения |
-| `/setabouttext` | короткое описание в профиле бота |
-| `/setuserpic` | аватарка |
-| `/setcommands` | подсказки команд (список ниже) |
+| SQLite | primary, always right |
+| `EXPORT_DIR/s3_applications.csv` | not appended — regenerated whole from the database via `tmp` + `os.replace` |
+| Notion | plain HTTP; creation is idempotent — a query by numeric `tg_id` before `POST` |
 
-Для `/setcommands` можно вставить целиком:
+**One** background consumer drains the queue, so there are no races. Stale tasks
+are skipped by `synced_rev` — a run of edits collapses to the last one. After
+eight failures a task becomes `diverged` and raises a flag for the admin instead
+of vanishing. There is no reverse import: two writers into one model lose data
+silently, so the reconciliation screen **reports differences and deletes
+nothing**.
 
-```
-start - начать и привязать свой репозиторий
-whoami - к какой записи привязан аккаунт
-find - поиск по справочнику ошибок
-joke - шутка про машинное обучение
-```
+Notion needs `NOTION_TOKEN` and `NOTION_DB`. Until they exist, forms pile up in
+the queue and arrive later. Both fields are declared `field(repr=False)`: a
+frozen dataclass prints itself whole in any traceback, and the token would reach
+the log on the first error.
 
-## Права администратора
+**Repositories.** The link is parsed by the same code the grader uses; one
+request, `GET /repos/{owner}/{repo}`, and only existence — no `contents`, no
+clone (pinned by a structural test over the literals in
+[`github.py`](src/mlbot/github.py)). Binding is **never blocked** by the result:
+a 404 is indistinguishable from a private repository, and refusing on it would
+reject honest work. Without `GITHUB_TOKEN` GitHub allows 60 requests an hour,
+which is not enough for two hundred students — hence a six-hour cache and a
+fallback `HEAD` against the HTML page.
 
-`ADMIN_IDS` в `bot/.env` — список telegram-id через запятую. Свой id бот скажет
-сам по команде `/id`; там же написано, видит ли он тебя администратором.
+**Homework.** The admin picks tracks, sends the assignment as one message (first
+line is the title, the last may be `срок: 14.03 23:59`) and publishes it.
+Recipients are deduplicated by `tg_id`: a student on both CV and DL gets **one**
+message. Deadlines are stored in UTC and shown in Minsk time with a label —
+otherwise moving the server would shift everyone's deadline at once, silently.
 
-`ADMIN_USERNAMES` — то же самое, но по username: нужен, когда numeric id
-заранее неизвестен. Проверка слабее, потому что освободившийся username может
-занять кто угодно, поэтому как только человек написал боту — посмотрите его
-`/id` и перенесите в `ADMIN_IDS`.
-
-После правки `.env` нужен перезапуск: `docker compose up -d`.
-
-Администратора бот не гонит через привязку к записи студента — её у
-преподавателя нет. Он сразу получает кнопку «🛠 Админка», а привязаться как
-студент может, прислав ссылку на репозиторий.
-
-## Почему домашка не зачтена
-
-Домашка зачтена, если в ней **нет критичных замечаний** и закрыто не меньше
-`hw_pass_ratio` (70%) обязательных пунктов. Больше ничего на вердикт не влияет:
-замечания уровня «серьёзное» и «мелкое» не заваливают тему никогда.
-
-Бот это проговаривает прямо, а не оставляет студенту список из тридцати
-замечаний, который читается как тридцать причин незачёта:
-
-* карточка темы — блок «Почему не зачтено» с перечисленными причинами и
-  отдельной строкой «остальные замечания на зачёт не влияли»;
-* карточка замечания — отметка «из-за этого тема не зачтена» либо
-  «на зачёт это не влияло»;
-* «🎯 Что подтянуть» начинается со списка «из-за чего не зачтены работы»;
-* экран результатов объясняет разрыв между «сдано 12» и «зачтено 6».
-
-Разбор причин живёт в [`views.blockers`](src/mlbot/views.py) и повторяет решение
-проверки. Что бот и проверка не расходятся, проверяет
-`test_verdict_explanation_agrees_with_the_recorded_status` — он прогоняется по
-всем работам потока и падает, если у незачтённой темы не нашлось причины.
-
-## «Что подтянуть» и «Сильные стороны»
-
-«🎯 Что подтянуть» — три блока: из-за чего не зачтены работы; топ-3 замечаний
-**по методологии** (утечки, валидация, метрики — не «выполни ячейки») с абзацем
-«почему это важно» и ссылкой на Яндекс.Хендбук; главы Хендбука по незачтённым
-темам. Дисциплина работы с ноутбуком — одной строкой. Разделение задаёт признак
-`kind: methodology | hygiene` во frontmatter статей каталога (`Article.kind`);
-у hw-статей умолчание `methodology`, у общих — проставлено явно.
-
-«💪 Сильные стороны» (кнопка под результатами, `/strengths`) — всё, что проверяющий
-отметил хорошего, по каждой теме. Это временная замена портрету студента за курс,
-который появится после перепрогона рецензий.
-
-## Тестер-режим
-
-Администратор может смотреть на бота глазами любого студента: «🛠 Админка» →
-«🛠 Отладка» → «👓 Глазами студента», либо сообщением `Тест Фамилия Имя`
-(или `/test Фамилия Имя`). После этого все кнопки студенческого меню показывают
-результаты этого человека. Выход — `Тест стоп`. В приветствии бот сам предлагает
-два примера: прошедшего курс и не добравшего до сертификата.
-
-Режим хранится в SQLite (`test_views`), поэтому переживает перезапуск и не
-занимает запись студента — тот может привязаться параллельно. Записать режим
-может только админский обработчик.
-
-## Меню: дерево, а не список из сорока кнопок
-
-Под полем ввода три кнопки (плюс «🛠 Админка» администратору):
-
-```
-🎓 Второй сезон       🔎 Справочник        🆘 Помощь
-├─ 📊 Результаты      ├─ ⚙️ Общие ошибки   ├─ ✉️ Написать преподавателю
-│   └─ 💪 Сильные…    └─ hw01…hw13 → статьи├─ 🪪 Кто я для бота
-├─ 📚 Домашки                              └─ 📖 Команды
-│   └─ тема → замечание (◀ 3/7 ▶)
-├─ 🎯 Что подтянуть
-├─ 📦 Материалы сезона   ← слайды и задания по всем темам, даже несданным
-└─ 🏆 Сертификат → PDF, фото с вручения
-```
-
-Дерево объявлено реестром узлов в [`menu/core.py`](src/mlbot/menu/core.py):
-один узел — один `@node(...)` и рендерер рядом с ним. `callback_data`
-собирается **в одном месте** (`cb()`), «назад» строится из объявленного
-родителя, корневая клавиатура — из детей корня по признаку видимости, поэтому
-отдельных списков для гостя и администратора больше нет.
-
-Ради чего это затевалось: по реестру можно **пройтись**. Тесты обходят дерево
-целиком и проверяют узлы, которых на момент написания теста ещё не было —
-связность, отсутствие циклов, бюджет 64 байта на `callback_data`, совпадение
-подписи «назад» с настоящим родителем.
-
-Старые кнопки (`hw:hw03`, `ref:art:…`) продолжают работать: они живут в истории
-чата вечно, и [`menu/router.py`](src/mlbot/menu/router.py) переводит их в узлы —
-переводит, а не реализует экран второй раз.
-
-Каждая кнопка продублирована командой (`/results`, `/homeworks`, `/improve`,
-`/materials`, `/certificate`, `/reference`, `/support`, `/whoami`). Список для
-кнопки «Меню» — в [`commands.py`](src/mlbot/commands.py); что он не разъедется
-с реальностью, проверяет `test_every_menu_command_has_a_handler`.
-
-## Админка
-
-Четыре группы вместо одиннадцати кнопок в столбик:
-
-| Группа | Внутри |
-|---|---|
-| 📈 Аналитика | сводка по потоку, по темам, что читают, требует решения |
-| 👥 Люди | найти студента, кто привязался, телеграмы, заявки, обращения |
-| 📣 Рассылки | новая, история, продолжить оборванную |
-| 🛠 Отладка | глазами студента, вымышленные студенты, перечитать данные |
-
-Права — [фильтром `AdminOnly`](src/mlbot/menu/filters.py) на обоих обсерверах
-роутера и признаком видимости узла, а не строчкой `if not _is_admin(...)` в
-каждом обработчике: строчку забывают, а грепающий её тест этого не замечает.
-Что посторонний не получает ни одной админской кнопки, проверяется обходом:
-бот показывает администратору всё дерево, и каждую найденную кнопку жмёт чужой
-аккаунт.
-
-## Рассылки
-
-«🛠 Админка» → «📣 Рассылки» → выбрать аудиторию → набрать сообщение →
-предпросмотр → отправить. Разметка сохраняется: бот читает `message.html_text`,
-а не `message.text` — иначе набранные в телеграме жирный и ссылки пропадали бы
-молча, а случайный `<` в тексте ронял бы отправку сразу всем.
-
-Аудитории объявлены реестром ([`broadcast/audiences.py`](src/mlbot/broadcast/audiences.py)):
-всем привязанным, с сертификатом, без сертификата, вымышленным, себе. Выборка
-«с сертификатом» — та же самая, что у скрипта `announce.py`: он берёт её отсюда
-же, и это закреплено тестом.
-
-Два свойства, ради которых схема такая:
-
-* **список адресатов замораживается** в момент подтверждения, одной транзакцией
-  с созданием рассылки. Возобновление шлёт ровно остаток и никогда не
-  перерешивает аудиторию — иначе в добавку попали бы привязавшиеся между
-  началом и обрывом;
-* **составной первичный ключ** `(broadcast_id, tg_id)` делает дубль физически
-  невозможным. Переход «черновик → отправляется» атомарный, поэтому двойное
-  нажатие безвредно.
-
-Отправка идёт фоновой задачей с прогрессом; заблокировавший бота помечается и
-не повторяется. Перезапуск посреди рассылки помечает её оборванной и говорит об
-этом администратору — продолжить можно кнопкой в истории.
-
-Непривязанным бот написать не может: Telegram не даёт писать первым. Их число
-показывается на экране аудитории отдельной строкой.
-
-## Третий сезон: регистрация через бота
-
-Февраль 2027, узкие направления для тех, кто прошёл базу: CV, NLP, RecSys, DL,
-временные ряды, RL, речь. У каждого свой преподаватель и 6–8 занятий; выбрать
-можно несколько. Направления описаны файлом
-[`season3/tracks.toml`](src/mlbot/season3/tracks.toml) и монтируются в
-контейнер — преподавателя и число занятий можно поправить без пересборки.
-
-**Ключевое упрощение.** Регистрация идёт через бота, значит `tg_id` известен с
-первого сообщения и подделать его нельзя. Весь класс проблем, породивший
-заявки на доступ и сшивку по ФИО, в третьем сезоне просто не возникает;
-username хранится, но **ключом не бывает** — только атрибутом и журналом
-(`identity_history`), потому что освободившийся username достаётся другому.
-
-**Анкета — данные, а не двенадцать обработчиков.** Шаги описаны кортежем в
-[`season3/wizard.py`](src/mlbot/season3/wizard.py): что спросить, чем ответить,
-как проверить. Все поля прошлогодней гугл-формы на месте плюс направления.
-
-Шкалы, университет и курс отвечаются **кнопками**. Это не про удобство: в
-числовых полях прошлой формы лежат «Бро», «1.5», «между 2 и 3» и целое
-предложение про свёрточные архитектуры. Так ведёт себя поле ввода, а не
-отвечающие; кнопка делает такой ответ невозможным.
-
-Черновик живёт в SQLite, а не в состоянии: `MemoryStorage` не переживает
-перезапуск контейнера, а анкету на двенадцать шагов заполняют не за минуту.
-
-**Три источника — через очередь, а не try/except.** Запись анкеты и постановка
-заданий приёмникам идут **одной транзакцией**: между «анкета сохранена» и
-«задание создано» нет окна, в которое можно упасть, поэтому «не потерять
-анкету» выполняется устройством, а не надеждой.
-
-| Приёмник | Как устроен |
-|---|---|
-| SQLite | первичен и всегда прав |
-| Файл `EXPORT_DIR/s3_applications.csv` | не дописывается, а перегенерируется целиком из базы через `tmp` + `os.replace` |
-| Notion | голый HTTP; создание идемпотентно — перед `POST` запрос по числовому `tg_id` |
-
-Очередь разгребает **один** фоновой потребитель, поэтому гонок нет. Устаревшие
-задания пропускаются по `synced_rev` — серия правок схлопывается до последней.
-После восьми неудач задание становится `diverged` и поднимает флаг
-администратору, а не теряется тихо. Обратного импорта нет: два писателя в одну
-модель теряют данные незаметно, поэтому экран сверки о расхождениях
-**сообщает, но ничего не удаляет**.
-
-Notion настраивается двумя переменными в `bot/.env` — `NOTION_TOKEN` и
-`NOTION_DB`. Пока их нет, анкеты копятся в очереди и дойдут, когда появятся.
-Оба поля объявлены с `field(repr=False)`: frozen-датакласс печатает себя
-целиком в любом трейсбеке, и токен уехал бы в лог при первой же ошибке.
-
-**Репозитории.** Разбор ссылки — тем же кодом, что у проверки домашек; запрос
-один, `GET /repos/{owner}/{repo}`, и только факт существования: ни `contents`,
-ни клона (закреплено структурным тестом по литералам в
-[`github.py`](src/mlbot/github.py)). Привязка **никогда не блокируется**
-результатом: 404 не отличить от приватного репозитория, и отказывать по нему
-значило бы отвергать честные работы. Без `GITHUB_TOKEN` GitHub даёт 60 запросов
-в час — на поток в двести человек не хватает, отсюда кэш на шесть часов и
-запасной `HEAD` по HTML.
-
-**Домашки.** Админ выбирает направления, присылает задание одним сообщением
-(первая строка — заголовок, последняя может быть `срок: 14.03 23:59`) и выдаёт
-его. Получатели дедуплицируются по `tg_id`: студент на CV и на DL получает
-**одно** сообщение. Срок хранится в UTC и показывается минским с пометкой —
-иначе при переносе сервера он сместился бы у всех разом и молча.
-
-## Запуск
+## Run
 
 ```bash
 docker compose up -d --build
 docker compose logs -f
 ```
 
-Локально, без Docker:
+Without Docker:
 
 ```bash
 uv sync --extra dev
 DATA_ROOT=.. uv run --env-file .env mlbot
 ```
 
-## Откуда берутся данные
+## Where the data comes from
 
-Бот ничего не считает сам — он читает то, что произвёл `checker`:
+The bot computes nothing itself — it reads what `checker` produced.
 
-| Что | Откуда |
+| What | Where |
 |---|---|
-| Персональные отчёты | `out/findings/<key>.json` |
-| Каталог ошибок | `checker/catalog/<hw>/<code>.md` |
-| Темы и рубрики | `checker/rubrics/hw*.yaml` |
-| Тексты заданий | `checker/rubrics/tasks/*.md` |
-| Слайды лекций | `materials/*.pdf` |
-| Спорные случаи для админки | `out/attention.md` |
+| Per-student reports | `out/findings/<key>.json` |
+| Error catalog | `checker/catalog/<hw>/<code>.md` |
+| Topics and rubrics | `checker/rubrics/hw*.yaml` |
+| Assignment texts | `checker/rubrics/tasks/*.md` |
+| Lecture slides | `materials/*.pdf` |
 
-Всё грузится в память при старте (около шести мегабайт). После нового прогона
-проверки данные подхватываются кнопкой «♻️ Перечитать данные» в админке —
-перезапуск контейнера не нужен.
+Everything loads into memory at startup (about six megabytes). After a new
+grading pass, *Admin → Debug → Reload data* picks it up without restarting the
+container.
 
-В SQLite (`/state/mlbot.sqlite3`) живёт только то, что порождает сам бот:
-привязки аккаунтов, события для аналитики, обращения в поддержку и рассылки.
-Оценок там нет.
+SQLite (`/state/mlbot.sqlite3`) holds only what the bot itself produces:
+bindings, analytics events, support tickets, broadcasts, season-3 forms. No
+grades.
 
-Схема версионируется через `PRAGMA user_version`
-([`migrations.py`](src/mlbot/migrations.py)): миграции только дописываются в
-конец, внутри — только `CREATE` и `ALTER TABLE ADD COLUMN` (закреплено тестом,
-потому что бот применяет их на старте без подтверждения). Перед повышением
-версии рядом с базой ложится копия.
+The schema is versioned through `PRAGMA user_version`
+([`migrations.py`](src/mlbot/migrations.py)): migrations are append-only and
+contain nothing but `CREATE` and `ALTER TABLE ADD COLUMN` — pinned by a test,
+because the bot applies them at startup without asking. A copy of the database
+is made before the version goes up.
 
-## Как студент подтверждает, что он — это он
+## How a student proves who they are
 
-Быстрый путь — по **telegram-username**. В форме сдачи домашек его не было, но
-он есть в форме регистрации на курс, и обе таблицы сшиты по ФИО командой
-`mlcheck telegram` (результат — `out/telegram_map.csv`). Так узнаётся
-**158 студентов из 205**: боту достаточно показать ФИО и спросить «это ты?».
+**Instant binding only on proven ownership.** Telegram guarantees the username
+belongs to the account writing to the bot; if it matches the one recorded for
+that student in the registration form, that is the owner. This covers 158
+students out of 205.
 
-Молча по username не привязываем. Username принадлежит аккаунту, который пишет
-боту, — фактор сильный, но освободившийся username может занять кто угодно,
-поэтому один подтверждающий тап остаётся.
+**Everything else waits for a human.** A name and a repository link are not
+proof — classmates know both, and in the very first week an outsider used them
+to open someone else's review. The remaining 47 — a changed username, or none in
+the form at all — become access claims: the student sees the request was sent,
+admins get a notification, and *Admin → People → Access claims* shows which
+username is recorded, who is asking, their id, the repository and the time, with
+approve and reject buttons.
 
-Остальные 47 идут проверкой из двух факторов: нужны **ссылка на репозиторий** и
-**ФИО**, и они должны указывать на одну строку формы. Порядок любой. По одной
-фамилии однокурсника чужой разбор не откроешь.
+One binding per account and one per student. Repeated attempts do not create
+duplicates, but two claims on the same record are both shown — that is exactly
+the case a human should decide.
 
-**Мгновенно привязываем только доказанное владение.** Telegram гарантирует, что
-username принадлежит аккаунту, который пишет боту; если он совпадает с
-закреплённым за записью в форме регистрации — это владелец, и вопросов нет. Так
-проходят **158 студентов из 205**.
+## Privacy
 
-**Всё остальное ждёт человека.** ФИО и ссылка на репозиторий доказательством не
-являются: и то и другое известно однокурсникам, и в первую же неделю посторонний
-аккаунт так открыл чужой разбор. Поэтому оставшиеся **47** — те, у кого в форме
-другой username (сменили телеграм) или username нет вовсе (не заполняли форму
-регистрации) — попадают в заявки:
+A student identifier never reaches `callback_data`: it always comes from the
+binding in the database. Substituting a button to get someone else's review is
+impossible, and
+[`tests/test_privacy.py`](tests/test_privacy.py) proves it by behaviour — the
+bot is traversed as one account and every button found is then pressed by
+another.
 
-* студент видит, что заявка отправлена преподавателю, и ждёт ответа в этом же чате;
-* администраторам из `ADMIN_IDS` сразу уходит уведомление;
-* разбор — «🛠 Админка» → «🔑 Заявки на доступ»: видно, какой username закреплён
-  за записью (или что его нет), кто просит, id, репозиторий и время. Кнопки
-  «✅ Это он» / «❌ Отказать», студенту уходит уведомление о решении;
-* повторные попытки не плодят дубли, а две заявки на одну запись видны обе —
-  это ровно тот случай, когда решать должен человек.
-
-Одна привязка на аккаунт и одна на студента. Перепривязка — через админа.
-Кто подтвердился первым, тот и владелец записи: его username закрепляется за
-ней и попадает в выгрузку «📇 Телеграмы» в админке — к следующему сезону
-получится готовая таблица «ФИО ↔ телеграм».
-
-### Как пересобрать карту username
-
-```
-cd checker
-uv run mlcheck telegram match     # сшить ФИО двух форм
-uv run mlcheck telegram verify    # проверить username через t.me
-```
-
-`match` принимает только связки, которые не могут склеить двух людей: полная
-пара «фамилия + имя», уменьшительное имя при точной фамилии, одиночная фамилия,
-встречающаяся в регистрации ровно один раз. Один username у двух студентов
-и настоящие однофамильцы отбрасываются. `verify` помечает освободившиеся
-username — такие в узнавание не идут.
-
-## Сертификат
-
-Порог задаётся в `checker/config.toml` (`certificate_ratio`) и читается ботом
-оттуда же, поэтому бот и отчёты всегда показывают одну цифру.
-
-Округление — **вниз, в пользу студентов**: при 66% от 12 тем нужно 7 домашек,
-а не 8. Формула одна для обоих пакетов — `mlcheck.report.required_passed_for`.
-
-## Приватность
-
-Идентификатор студента нигде не попадает в `callback_data`: он всегда берётся
-из привязки в базе. Подменить кнопку и получить чужой разбор нельзя — это
-закреплено тестом `test_callback_data_never_carries_a_student_key`.
-
-## Проверка
+## Tests
 
 ```bash
 uv run pytest
 ```
 
-Тесты прогоняют рендер по всем 205 отчётам и всем 4332 замечаниям: каждый экран
-должен уложиться в лимит телеграма в 4096 символов и иметь парные теги.
+The suite renders every screen for every report and every finding: each must fit
+Telegram's 4096-character limit with balanced tags. Without the real corpus it
+runs against the synthetic stream in `fixtures/` — see the root README.
 
-## Устройство
+## Layout
 
 ```
 src/mlbot/
-  config.py       окружение и пути
-  data.py         данные курса в памяти, агрегаты по потоку
-  store.py        SQLite: привязки, события, обращения
-  matching.py     поиск студента по ссылке и ФИО
-  render.py       markdown → HTML телеграма, нарезка длинных сообщений
-  views.py        сборка текстов экранов (чистые функции, тестируются отдельно)
-  keyboards.py    клавиатуры
-  texts.py        все тексты в одном месте
-  handlers/       start, results, homeworks, learn, certificate, support, admin, easter
+  config.py       environment and paths
+  data.py         course data in memory, stream aggregates
+  store.py        SQLite: bindings, events, tickets, broadcasts, forms
+  migrations.py   versioned schema
+  safety.py       the SAFE_MODE catch
+  matching.py     finding a student by link and name
+  render.py       markdown → Telegram HTML, splitting long messages
+  views.py        screen text (pure functions, tested separately)
+  texts.py        all Russian strings in one place
+  menu/           node registry, screens, admin panel, season 3
+  broadcast/      audience registry and sender
+  season3/        tracks, form, deadlines
+  sinks/          CSV and Notion, drained by one worker
+  handlers/       onboarding, admin dialogs, support, easter eggs
 ```

@@ -8,9 +8,9 @@ from mlbot.data import Course
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# Настоящий корпус отчётов в открытый репозиторий не входит: там ФИО, ссылки на
-# личные репозитории и рецензии. Если он рядом — прогоняемся по нему, иначе по
-# синтетическому потоку (`python fixtures/make_fixture.py`).
+# The real report corpus is not part of the public repository: it holds names,
+# links to private repositories and reviews. If it is there, run against it;
+# otherwise against the synthetic stream (`python fixtures/make_fixture.py`).
 REAL_OUT = ROOT / "out" / "findings"
 OUT_ROOT = None if REAL_OUT.exists() else ROOT / "fixtures" / "out"
 
@@ -35,16 +35,16 @@ def course(cfg) -> Course:
 
 @pytest.fixture(autouse=True)
 def detached_routers():
-    """Диспетчер собирается заново во многих тестах — см. `harness.detach_routers`."""
+    """Many tests rebuild the dispatcher — see `harness.detach_routers`."""
     detach_routers()
 
 
 @pytest.fixture(scope="session")
 def somebody(course):
-    """Любой студент со сдачами.
+    """Any student with submissions.
 
-    Тесты не называют студентов по имени: репозиторий открытый, а корпус
-    отчётов в него не входит. Выбор по свойствам ещё и честнее — он проверяет
-    поведение на произвольной записи, а не на одной заученной.
+    Tests never name students: the repository is public and the report corpus is
+    not part of it. Selecting by properties is also more honest — it checks the
+    behaviour on an arbitrary record rather than one memorised case.
     """
     return next(s for s in course.active if s.submitted() and s.repo)

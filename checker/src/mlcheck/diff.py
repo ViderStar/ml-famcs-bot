@@ -1,9 +1,9 @@
-"""Сравнение двух сборок отчётов: что изменилось от прогона к прогону.
+"""Comparing two report builds: what changed from run to run.
 
-Нужно после перепрогона рецензий: сколько сертификатов было и стало, у кого
-изменилось число зачтённых тем, какие вердикты по темам перевернулись и почему.
-Перевороты «зачтено → не зачтено» — главное, что должен посмотреть преподаватель
-глазами: за каждым стоит живой человек, который уже мог видеть старый вердикт.
+Needed after rerunning the reviews: how many certificates there were and are,
+whose passed-topic count moved, which per-topic verdicts flipped and why.
+The "passed → failed" flips are the main thing a teacher must look at by eye:
+behind each is a real person who may already have seen the old verdict.
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ class Diff:
     cert_after: int = 0
     cert_gained: list[str] = field(default_factory=list)
     cert_lost: list[str] = field(default_factory=list)
-    passed_delta: dict[int, int] = field(default_factory=dict)   # изменение → людей
+    passed_delta: dict[int, int] = field(default_factory=dict)   # change → people
     flips: list[Flip] = field(default_factory=list)
     hw_pass_before: dict[str, int] = field(default_factory=dict)
     hw_pass_after: dict[str, int] = field(default_factory=dict)

@@ -1,18 +1,18 @@
-"""Поиск утечек данных.
+"""Detecting data leakage.
 
-Утечкой считается только то, что действительно выучивает статистику по данным
-и потому обязано видеть лишь обучающую выборку: масштабирование, заполнение
-пропусков, PCA, отбор признаков, векторизация текста, target encoding.
+Only things that genuinely learn statistics from the data — and therefore must
+see the training split alone — count as leakage: scaling, imputation, PCA,
+feature selection, text vectorisation, target encoding.
 
-Сознательно НЕ считаем утечкой:
-* `LabelEncoder`/`OneHotEncoder`/`OrdinalEncoder` без целевой переменной —
-  они лишь перечисляют категории, никакой статистики от таргета не берут;
-* t-SNE и UMAP — они трансдуктивны, у них нет `transform`, и `fit_transform`
-  на любых данных является единственным способом применения;
-* строки, унаследованные из раздаточной заготовки, — за них отвечает не студент.
+Deliberately NOT counted as leakage:
+* `LabelEncoder`/`OneHotEncoder`/`OrdinalEncoder` without a target — they only
+  enumerate categories and take no statistics from the target;
+* t-SNE and UMAP — they are transductive, have no `transform`, and
+  `fit_transform` on whatever data is the only way to use them;
+* lines inherited from the handout template — the student is not responsible.
 
-Работаем по строкам в порядке ячеек, а не через AST: во многих работах есть
-магии и незакрытые конструкции, на которых разбор AST падает.
+The analysis works line by line in cell order rather than through an AST: many
+submissions contain magics and unclosed constructs that break AST parsing.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from ..nbio import Notebook
 from ..templates import normalize_line
 from .base import Finding, Severity
 
-# Преобразования, выучивающие статистику по данным.
+# Transforms that learn statistics from the data.
 _STAT = (
     r"(?:\w*(?:scaler|imputer|pca|normalizer|discretizer|selector|vectorizer|"
     r"svd|kbins|quantiletransformer|powertransformer))"
@@ -33,31 +33,31 @@ _STAT_CLASS = (
     r"KNNImputer|IterativeImputer|PCA|TruncatedSVD|KBinsDiscretizer|QuantileTransformer|"
     r"PowerTransformer|TfidfVectorizer|CountVectorizer|SelectKBest|SelectFromModel)"
 )
-# Target encoding — настоящая утечка: значения берутся из таргета.
+# Target encoding is real leakage: the values come from the target.
 _TARGET_ENC = (
     r"(?:TargetEncoder|CatBoostEncoder|WOEEncoder|LeaveOneOutEncoder|JamesSteinEncoder|"
     r"MEstimateEncoder)"
 )
 
 _FIT_STAT = re.compile(rf"\b{_STAT}\s*\.\s*fit(?:_transform)?\s*\(", re.I)
-# Заполнение пропусков посчитанной по всем данным статистикой — та же утечка,
-# только без объекта-преобразователя: df.fillna(df.median()) до train_test_split.
+# Imputing with a statistic computed over all the data is the same leakage,
+# just without a transformer object: df.fillna(df.median()) before the split.
 _FILLNA_STAT = re.compile(
     r"\.fillna\s*\([^()]*\.\s*(?:mean|median|mode|quantile)\s*\(", re.I)
 _FIT_STAT_INLINE = re.compile(rf"\b{_STAT_CLASS}\s*\([^()]*\)\s*\.\s*fit(?:_transform)?\s*\(", re.I)
-# Упоминание класса без вызова .fit — это импорт, а не утечка.
+# Mentioning the class without calling .fit is an import, not leakage.
 _FIT_TARGET_ENC = re.compile(rf"\b{_TARGET_ENC}\b(?=.*\.\s*fit)", re.I)
-# encoder.fit_transform(X, y) — второй аргумент выдаёт target encoding.
+# encoder.fit_transform(X, y) — the second argument gives away target encoding.
 _FIT_WITH_Y = re.compile(
     r"\b\w*encoder\s*\.\s*fit(?:_transform)?\s*\([^()]*,\s*[\w\[\]'\"\.]*\s*\)", re.I
 )
 
 _SPLIT = re.compile(r"\b(?:train_test_split|StratifiedShuffleSplit|TimeSeriesSplit)\s*\(")
-# Pipeline внутри кросс-валидации — правильный способ, утечки нет.
+# A Pipeline inside cross-validation is the correct way; no leakage.
 _PIPELINE = re.compile(r"\b(?:make_pipeline|Pipeline)\s*\(")
 
-# Обучение на обучающей выборке — норма. Подчёркивание словесное, поэтому
-# «\btrain\b» не сработало бы внутри «X_train»: границу слова слева не ставим.
+    # Fitting on the training split is normal. The underscore is part of the
+    # word, so "\btrain\b" would not match inside "X_train".
 _ON_TRAIN = re.compile(r"\.\s*fit(?:_transform)?\s*\(\s*[^()]*train", re.I)
 _TRANSDUCTIVE = re.compile(r"\b(?:tsne|t_sne|umap|manifold)\w*\s*\.", re.I)
 _ON_TEST = re.compile(r"\.\s*fit(?:_transform)?\s*\(\s*(?:X_?test|x_?test|test_X|df_test)\b", re.I)
@@ -115,10 +115,10 @@ def check(
             and not _skip(ln, template_lines, exempt)
         ]
         if before:
-            # Серьёзное, а не критичное: ошибка настоящая, но одна и та же во
-            # всех работах — скопирована из общего шаблона, — и на потоке она
-            # одна закрывала двадцать зачётов при полностью выполненных заданиях.
-            # Обучение на самом тесте (ниже) остаётся критичным.
+            # Major rather than critical: the mistake is real but identical
+            # across submissions — copied from a shared template — and on its own
+            # it failed twenty otherwise complete assignments. Fitting on the test
+            # set itself (below) stays critical.
             findings.append(Finding(
                 code="common.fit_before_split",
                 hw=hw,

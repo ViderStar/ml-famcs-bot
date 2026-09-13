@@ -1,12 +1,12 @@
-"""Файл с анкетами.
+"""The applications file.
 
-Не дописываем построчно, а **перегенерируем проекцию целиком** из SQLite:
-дописывание при повторе задания дало бы дубль, а при правке анкеты — вторую
-строку на того же человека. Запись идёт во временный файл и `os.replace`,
-поэтому читающий никогда не увидит половину таблицы.
+Not appended row by row but **regenerated whole** from SQLite: appending would
+duplicate on a repeated task, and on an edited form it would add a second row
+for the same person. The write goes to a temporary file plus `os.replace`, so a
+reader never sees half a table.
 
-Каталог берётся из `EXPORT_DIR`, а не из `out/`: тот смонтирован только на
-чтение, и первая же анкета упёрлась бы в «Read-only file system».
+The directory comes from `EXPORT_DIR`, not from `out/`: that one is mounted
+read-only, and the very first application would hit "Read-only file system".
 """
 
 from __future__ import annotations
@@ -23,10 +23,10 @@ FIELDS = ("tg_id", "username", "fio", "email", "university", "faculty", "year",
 
 
 def row_of(app: dict, readable: bool = True) -> dict:
-    """Строка таблицы. По умолчанию — подписями, а не кодами.
+    """A table row. Labels rather than codes by default.
 
-    Таблицу читает человек: `basic` и `derivative` в ней не значат ничего, а
-    «Базовый» и «Производная» — значат.
+    A human reads this table: `basic` and `derivative` mean nothing in it, while
+    the Russian labels do.
     """
     a = app["answers"]
 
@@ -68,7 +68,7 @@ def render(apps: list[dict]) -> str:
 
 
 async def sync(cfg, store, task: dict) -> str | None:
-    """Перегенерировать файл. Задание одно на любую правку — файл всегда целиком."""
+    """Regenerate the file. One task per edit — the file is always written whole."""
     apps = await store.applications("submitted")
     path = Path(cfg.export_dir) / "s3_applications.csv"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -79,7 +79,7 @@ async def sync(cfg, store, task: dict) -> str | None:
 
 
 def human(value_id: str, step_id: str, answers: dict | None = None) -> str:
-    """Подпись варианта — чтобы в таблице стояло «Базовый», а не `basic`."""
+    """The option label — so the table shows a readable word rather than `basic`."""
     step = wizard.step(step_id)
     if step is None or not value_id:
         return value_id

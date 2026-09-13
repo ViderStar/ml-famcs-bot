@@ -1,199 +1,175 @@
-# mlcheck — автопроверка домашних заданий ML FAMCS Season 2
+# mlcheck — automatic homework grading
 
-Конвейер: репозитории студентов → определение тем → детерминированные правила →
-смысловая рецензия моделью → персональные отчёты и вердикт по сертификату.
+Pipeline: student repositories → topic detection → deterministic rules → model
+review → per-student reports and the certificate verdict.
 
-## Запуск
+Course content — rubrics, the error catalog, report text — stays in Russian:
+students read it.
+
+## Run
 
 ```bash
-cd checker
-uv venv && uv pip install -e ".[dev]"
+cd checker && uv sync --extra dev
 ```
 
-Шаги независимы, каждый пишет свой артефакт и перезапускается отдельно:
+Steps are independent; each writes its own artifact and restarts on its own:
 
 ```bash
-uv run mlcheck roster       # разобрать форму, проверить доступность репозиториев
-uv run mlcheck fetch        # выкачать репозитории (--force чтобы обновить)
-uv run mlcheck classify     # определить тему каждого ноутбука по содержимому
-uv run mlcheck similarity   # поиск заимствований
-uv run mlcheck llm estimate # сколько будет стоить рецензия
-uv run mlcheck llm submit   # отправить батч
-uv run mlcheck llm collect --wait
-uv run mlcheck report       # вердикт, отчёты, сводные таблицы
+uv run mlcheck roster       # parse the form, check repositories are reachable
+uv run mlcheck fetch        # download repositories (--force to refresh)
+uv run mlcheck classify     # detect each notebook's topic from its content
+uv run mlcheck similarity   # look for copied work
+uv run mlcheck report       # verdicts, reports, summary tables
 ```
 
-`report` работает и без шага `llm` — тогда вердикт строится только на статике.
+`report` works without the `llm` step — the verdict then rests on static checks
+alone.
 
-## Смысловая рецензия: два пути
+## Model review: two routes
 
-**Путь 1, через Batch API.** Нужен `ANTHROPIC_API_KEY`; полный прогон по 966
-работам стоит около $10 и занимает до часа:
+**Batch API.** Needs `ANTHROPIC_API_KEY`; a full pass over 966 submissions costs
+about $10 and takes up to an hour.
 
 ```bash
-uv run mlcheck llm estimate      # сколько выйдет
+uv run mlcheck llm estimate
 uv run mlcheck llm submit
 uv run mlcheck llm collect --wait
 ```
 
-**Путь 2, субагентами Claude Code.** Ключ не нужен — работает на подписке.
-Каждый агент берёт пачку работ одной темы и пишет разборы в `out/llm/`:
+**Claude Code subagents.** No key — runs on a subscription. Each agent takes one
+batch of a single topic and writes reviews into `out/llm/`.
 
 ```bash
-uv run mlcheck llm export --delta          # выгрузить работы и промпты по темам
-uv run mlcheck llm batches --per-batch 25  # разбить на пачки
+uv run mlcheck llm export --delta
+uv run mlcheck llm batches --per-batch 25
 ```
 
-Дальше на каждую пачку запускается субагент с задачей вида:
-
-> Прочитай инструкцию `checker/AGENT_PROMPT.md`. Тема `hw12`, пачка `hw12_01.txt`.
-
-Инструкция в `AGENT_PROMPT.md` самодостаточна: агент сам находит критерии,
-список работ и формат вывода. Прогон возобновляемый — `batches` пропускает то,
-что уже разобрано, поэтому упавшую или прерванную пачку достаточно перевыпустить.
-
-Проверить полноту и соответствие схеме:
+Then one subagent per batch: *"Read `checker/AGENT_PROMPT.md`. Topic `hw12`,
+batch `hw12_01.txt`."* The instruction is self-contained. The pass is resumable —
+`batches` skips what is already reviewed, so a crashed batch is simply reissued.
 
 ```bash
 uv run mlcheck llm verify --show-left
 ```
 
-`verify` ловит битый JSON, отсутствующие поля и коды ошибок вне каталога.
+`verify` catches broken JSON, missing fields and error codes outside the catalog.
 
-## Портрет студента за курс (`--mode student`)
+Rule for subagents in any mode: **no more than six at once**, and the task must
+forbid them from spawning their own. Otherwise the session limit is gone in
+minutes.
 
-Третий режим рецензии. На вход не ноутбук, а дайджест всех проверок одного студента
-(собирается из `out/findings/<key>.json` — того же файла, что читает бот), на выход —
-сильные стороны за курс и 2–5 направлений роста по ML/DS-методологии со ссылками.
+## Student portrait (`--mode student`)
 
-```
-uv run mlcheck report                              # сначала свежие findings
-uv run mlcheck llm export --mode student           # дайджесты → out/llm_input_student/
+A third review mode. Input is not a notebook but a digest of everything checked
+for one student (built from `out/findings/<key>.json` — the same file the bot
+reads); output is their strengths across the course and 2–5 growth directions in
+ML/DS methodology, with links.
+
+```bash
+uv run mlcheck report
+uv run mlcheck llm export --mode student
 uv run mlcheck llm batches --mode student --per-batch 12
-# субагент: «Прочитай checker/AGENT_PROMPT_STUDENT.md. Пачка student_01.txt»
 uv run mlcheck llm verify --mode student
-uv run mlcheck report                              # поле portrait в findings
+uv run mlcheck report                       # portrait lands in findings
 ```
 
-Ссылки модель выдумывать не может: в промпт передаётся закрытый список URL из
-каталога, `verify` бракует файл с посторонней ссылкой, `report` санирует ответ
-(`llm.sanitize_student`), а бот фильтрует ещё раз по `Course.known_links`.
-Пачки `student_*.txt` живут рядом с пачками рецензий и не стирают их.
+The model cannot invent links: the prompt carries a closed list of catalog URLs,
+`verify` rejects a file with an outside link, `report` sanitises the answer, and
+the bot filters once more against `Course.known_links`.
 
-Правило для субагентов любого режима: не больше шести одновременно и **запрет на
-собственных субагентов** в задании — иначе лимит сессии кончается за минуты.
+## Rerun and comparison
 
-## Список прошедших курс
+Before rerunning reviews, keep the old ones: `mv out/llm out/llm_v1`,
+`cp -r out/findings out/findings_v1`. Afterwards `uv run mlcheck diff
+out/findings_v1` writes `out/rerun_diff.md`: certificates before and after, who
+gained and lost one, per-topic verdict flips with reasons.
 
-`out/certificates.md` (для чтения) и `out/certificates.csv` (для ведомости)
-собираются вместе с отчётами командой `mlcheck report` — отдельно поддерживать их
-не нужно и не стоит: число менялось после каждой точечной перепроверки.
-Что список не разойдётся с вердиктами, проверяет
-`test_certificate_list_matches_the_verdicts`.
+Read the "was passed — now failed" section every time. Behind each line is a
+student who may already have seen the old verdict.
 
-## Перепрогон и сравнение сборок
+A model finding whose code has `detector: rule` is never critical in the report:
+the rule already checked and found nothing, while the model sees only the diff
+without the handout and gets it wrong.
 
-Перед перепрогоном рецензий сохраните старое: `mv out/llm out/llm_v1`,
-`cp -r out/findings out/findings_v1`. После — `uv run mlcheck diff out/findings_v1`
-пишет `out/rerun_diff.md`: сертификаты до/после, кто получил и потерял, перевороты
-вердиктов по темам с причиной. Раздел «было зачтено — стало не зачтено» смотреть
-обязательно: за каждой строкой студент, который мог уже видеть старый вердикт.
+## Layout
 
-Находка модели по коду с `detector: rule` в отчёте никогда не критична: правило
-уже проверило и не нашло, а модель видит только дельту без раздатки и ошибается.
-
-## Что где лежит
-
-| Путь | Что это |
+| Path | What |
 |---|---|
-| `config.toml` | пороги вердикта, модель, лимиты |
-| `rubrics/hwNN.yaml` | описание домашки: сигнатура темы и пункты проверки |
-| `rubrics/tasks/*.md` | тексты заданий, извлечённые из `materials/` |
-| `rubrics/templates/` | эталонные заготовки, которых нет в `materials/` |
-| `catalog/<hw>/<code>.md` | каталог типовых ошибок: пояснение и ссылки |
-| `../out/findings/<key>.json` | машиночитаемый отчёт — это читает бот |
-| `../out/reports/<key>.md` | человекочитаемый отчёт |
-| `../out/summary.csv` | сводная таблица для преподавателей |
-| `../out/typical_errors.md` | частоты типовых ошибок по потоку |
-| `../out/similarity.csv` | пары похожих работ |
-| `../out/excluded.csv` | студенты вне анализа и причина |
+| `config.toml` | verdict thresholds, model, limits |
+| `rubrics/hwNN.yaml` | one homework: topic signature and check items |
+| `rubrics/tasks/*.md` | assignment texts extracted from `materials/` |
+| `rubrics/templates/` | reference handouts missing from `materials/` |
+| `catalog/<hw>/<code>.md` | error catalog: explanation and links |
+| `../out/findings/<key>.json` | machine-readable report — this is what the bot reads |
+| `../out/reports/<key>.md` | human-readable report |
+| `../out/summary.csv` | summary table for teachers |
+| `../out/similarity.csv` | pairs of similar submissions |
 
-## Три вещи, которые определяют устройство проверки
+## Three facts that shape the design
 
-**Имя папки не говорит о теме.** Встречается `hw04 (LOG REGRESSION)` с линейной
-регрессией внутри и репозиторий, где все папки названы `*_setup_tools`.
-Тему определяет содержимое (`classify.py`), путь — лишь слабая подсказка.
-Классификация многометочная: задание по случайному лесу просило дополнить
-ноутбук из домашки по линейной регрессии, и один файл закрывает две темы.
+**A folder name does not tell you the topic.** There is an `hw04 (LOG
+REGRESSION)` holding linear regression, and a repository where every folder is
+called `*_setup_tools`. Content decides (`classify.py`); the path is a weak hint
+at best. Classification is multi-label: the random-forest assignment asked
+students to extend their linear-regression notebook, so one file closes two
+topics.
 
-**`# YOUR CODE HERE` остаётся в сданных работах.** На корпусе таких ячеек 3744
-против 23 действительно пустых: студенты пишут код под маркером, не удаляя его.
-«Не выполнено» определяется по пустому телу ячейки после вычитания комментариев.
+**`# YOUR CODE HERE` survives in submitted work.** Across the corpus: 3744 such
+cells against 23 genuinely empty ones. Students write under the marker without
+deleting it, so "not done" is decided by an empty cell body after comments are
+subtracted.
 
-**Ошибку из раздатки нельзя вменять студенту.** `pca_practice_student.ipynb` сам
-масштабирует весь датасет до `train_test_split`. Строки эталона вычитаются
-(`templates.py`), а то, что дословно повторяется у пяти и более студентов,
-считается раздаткой автоматически — не все заготовки курса сохранились
-в `materials/`.
+**A mistake inherited from the handout is not the student's.**
+`pca_practice_student.ipynb` scales the whole dataset before `train_test_split`.
+Reference lines are subtracted (`templates.py`), and anything repeated verbatim
+by five or more students counts as handout automatically — not every template
+survived in `materials/`.
 
-## Что проверяется по дельте, а что по всему ноутбуку
+## Diff scope
 
-Для домашек на заготовке пункты рубрики проверяются **только по тому, что
-дописал студент** (`check_scope: delta`, по умолчанию). Иначе каркас заготовки —
-`def sigmoid`, `class MyLogisticRegressionGD`, готовый код лекции — закрывает
-требования за студента: до этой правки нетронутые раздаточные ноутбуки
-проходили 67 обязательных пунктов из 13 рубрик.
+For template-based homework, rubric items are checked **only against what the
+student added** (`check_scope: delta`, the default). Otherwise the scaffolding —
+`def sigmoid`, `class MyLogisticRegressionGD`, lecture code — closes the
+requirements for them: before this rule, untouched handout notebooks passed 67
+required items across 13 rubrics.
 
-Исключение — hw01 и hw07 (`check_scope: full`): их раздали уже решёнными,
-писать там было нечего, поэтому содержательные пункты справочные, findings по
-ним не выдаются, а зачёт держится на том, запускается ли ноутбук.
+hw01 and hw07 are the exception (`check_scope: full`): they were handed out
+already solved, so their content items are advisory and the verdict rests on
+whether the notebook runs.
 
-## Вердикт
+## Verdict
 
-Домашка засчитана, если нет находок уровня `critical` и закрыто не меньше
-`hw_pass_ratio` обязательных пунктов рубрики. Сертификат — при
-`certificate_ratio` засчитанных домашек. Оба порога в `config.toml`.
+Homework passes with no `critical` findings and at least `hw_pass_ratio` of the
+required rubric items closed. A certificate needs `certificate_ratio` of the
+homework passed. Both live in `config.toml`.
 
-Недоступный репозиторий — терминальный статус: студент не участвует в анализе
-и не получает сертификат.
+An unreachable repository is terminal: the student is out of the analysis and
+gets no certificate.
 
-Тема с `graded: false` показывается в отчёте, но в знаменателе сертификата не
-участвует. Сейчас так помечена hw07: задания по деревьям решений не выдавалось.
+A topic with `graded: false` shows up in the report but stays out of the
+certificate denominator. hw07 is marked that way — no decision-tree assignment
+was ever issued.
 
-## Контракт для телеграм-бота
+## Contract with the bot
 
-`out/findings/<key>.json` содержит всё, что нужно показать студенту: ФИО,
-ссылку на репозиторий, вердикт по сертификату и по каждой домашке список
-находок. У находки есть `code`, `severity`, `title`, `detail` (конкретика по
-этой работе), `comment` (текст модели), `links` и `article` — путь к статье
-каталога. Пояснительные тексты бот берёт из `catalog/` по коду, поэтому правки
-в каталоге видны сразу и не требуют пересборки отчётов.
+`out/findings/<key>.json` holds everything the student should see: name,
+repository link, certificate verdict, and per-homework findings. A finding
+carries `code`, `severity`, `title`, `detail` (specific to this work), `comment`
+(the model's text), `links` and `article`. Explanatory text comes from
+`catalog/` by code, so catalog edits show up immediately without rebuilding
+reports.
 
-## Что получилось
+## Adding a check
 
-Проверены все 175 доступных репозиториев, найдено 966 сдач, из них 927 по
-зачётным темам разобраны моделью. Итоги — в `out/`:
-
-| Файл | Что там |
-|---|---|
-| `discovery_findings.md` | системные находки: ошибки в самой проверке, проблемы в материалах курса, статистика прогона |
-| `attention.md` | то, что должны решить преподаватели: утёкший ключ, попытки обмануть проверку, совпадения работ, порог сертификата |
-| `typical_errors.md` | частоты типовых ошибок по каждой теме |
-| `summary.csv` | сводная таблица по всем 205 студентам |
-| `similarity.csv` | пары похожих работ с датами |
-| `reports/`, `findings/` | персональные отчёты и данные для бота |
-
-## Как добавить проверку
-
-Пункт рубрики — в `rubrics/hwNN.yaml`:
+A rubric item in `rubrics/hwNN.yaml`:
 
 ```yaml
   - id: my_check
-    title: Человекочитаемое название
+    title: Human-readable name
     required: true
-    kind: rule           # rule — регулярками, llm — смысловая оценка моделью
+    kind: rule           # rule — regexes, llm — model judgement
     any_regex: ['GridSearchCV']
 ```
 
-и статью `catalog/hwNN/my_check.md`. Тест `test_every_finding_has_a_catalog_article`
-не даст забыть второе.
+plus an article at `catalog/hwNN/my_check.md`. The test
+`test_every_finding_has_a_catalog_article` will not let you forget the second.

@@ -1,8 +1,8 @@
-"""Поиск заимствований.
+"""Looking for copied work.
 
-Ключевой риск: заготовки идентичны у всех по построению, и наивное сравнение
-файлов обвинило бы в списывании десятки честных студентов. Сравнивается только
-дельта поверх раздатки.
+The key risk: handouts are identical for everyone by construction, and a naive
+file comparison would accuse dozens of honest students. Only the diff over the
+handout is compared.
 """
 
 from mlcheck import nbio, similarity
@@ -22,7 +22,7 @@ def _work(write_nb, key, cells, boiler=frozenset(), name=None):
 
 
 def test_untouched_template_copies_produce_no_pairs(write_nb):
-    """Десять нетронутых копий одной заготовки не должны дать ни одной пары."""
+    """Ten untouched copies of one template must produce no pairs at all."""
     students = {f"s{i}": [c[1] for c in TEMPLATE] for i in range(10)}
     boiler = similarity.corpus_boilerplate(
         {k: [similarity._WS.sub("", c) for c in v] for k, v in students.items()},
@@ -58,39 +58,39 @@ def test_renamed_variables_still_look_similar(write_nb):
     a = TEMPLATE + [("code", "alpha = 0.1\nbeta = alpha * 2\nresult = beta + alpha\nprint(result)\n")]
     b = TEMPLATE + [("code", "gamma = 0.1\ndelta = gamma * 2\noutput = delta + gamma\nprint(output)\n")]
     wa, wb = _work(write_nb, "a", a), _work(write_nb, "b", b, name="b2.ipynb")
-    assert wa.fingerprint != wb.fingerprint, "точного совпадения нет — имена разные"
-    assert similarity.jaccard(wa.shingles, wb.shingles) > 0.9, "но структура та же"
+    assert wa.fingerprint != wb.fingerprint, "no exact match — the names differ"
+    assert similarity.jaccard(wa.shingles, wb.shingles) > 0.9, "but the structure is the same"
 
 
 def test_short_delta_never_forms_a_near_pair(write_nb):
-    """Правильную сигмоиду все пишут одинаково — на паре строк это не улика."""
+    """Everyone writes the correct sigmoid the same way — on two lines that is no evidence."""
     tiny = [("code", "def sigmoid(z):\n    return 1 / (1 + np.exp(-z))\n")]
     works = [_work(write_nb, "a", tiny), _work(write_nb, "b", tiny, name="b2.ipynb")]
     assert similarity.find_pairs(works, 0.8, min_tokens=300) == []
 
 
 def test_corpus_boilerplate_needs_enough_students(write_nb):
-    """Ячейка, встреченная у двоих, — это ещё не раздатка, а возможная копия."""
+    """A cell seen in two submissions is not handout yet, but a possible copy."""
     cells = {"a": ["X" * 50], "b": ["X" * 50]}
     assert similarity.corpus_boilerplate(cells, min_students=5) == frozenset()
     assert similarity.corpus_boilerplate(cells, min_students=2) == frozenset({"X" * 50})
 
 
 def test_tokenizer_survives_broken_code(write_nb):
-    """В ноутбуках попадаются магии и оборванный код — падать нельзя."""
+    """Notebooks contain magics and truncated code — crashing is not an option."""
     tokens = similarity.normalize_tokens("%%time\nfor i in range(:\n    print(")
     assert tokens
 
 
 def test_boilerplate_threshold_scales_with_cohort():
-    """Пятеро списавших на потоке в полсотни человек — это не раздатка."""
+    """Five copiers in a stream of fifty is not handout."""
     cheaters = {f"c{i}": ["ОБЩАЯ ЯЧЕЙКА" * 5] for i in range(5)}
     others = {f"s{i}": [f"своя работа {i}" * 5] for i in range(45)}
     cells = {**cheaters, **others}
 
-    # Абсолютного порога в 5 хватило бы, чтобы стереть эту группу.
+    # An absolute threshold of 5 would erase this group.
+    # The proportional one (15% of 50 = 8) keeps it.
     assert similarity.corpus_boilerplate(cells, 5, min_share=0.0) != frozenset()
-    # Долевой порог (15% от 50 = 8) её сохраняет.
     assert similarity.corpus_boilerplate(cells, 5, min_share=0.15) == frozenset()
 
 

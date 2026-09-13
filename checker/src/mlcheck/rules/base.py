@@ -1,4 +1,4 @@
-"""Находка проверки и её вес в вердикте."""
+"""A check finding and its weight in the verdict."""
 
 from __future__ import annotations
 
@@ -7,18 +7,18 @@ from enum import StrEnum
 
 
 class Severity(StrEnum):
-    CRITICAL = "critical"   # домашка не засчитывается
-    MAJOR = "major"         # засчитана с замечаниями
-    MINOR = "minor"         # совет на будущее
+    CRITICAL = "critical"   # the homework does not pass
+    MAJOR = "major"         # passes with findings
+    MINOR = "minor"         # advice for next time
 
 
 @dataclass
 class Finding:
-    code: str                       # ключ статьи в каталоге ошибок
+    code: str                       # article key in the error catalog
     hw: str
     severity: Severity
     title: str
-    detail: str = ""                # конкретика по этой работе
+    detail: str = ""                # specifics for this submission
     source: str = "rule"            # rule | llm
     cells: list[int] = field(default_factory=list)
 

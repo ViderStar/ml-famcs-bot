@@ -1,10 +1,10 @@
-"""Сроки сдачи: разбор минского времени и показ его же.
+"""Deadlines: parsing Minsk time and displaying it.
 
-Храним в UTC, показываем минским и с явной пометкой. Иначе при переносе сервера
-в другой часовой пояс срок сместился бы у всех разом — и молча.
+Stored in UTC, shown in Minsk time with an explicit label. Otherwise moving the
+server to another timezone would shift everyone's deadline at once — silently.
 
-Беларусь часы не переводит, смещение постоянное +3, поэтому обходимся без
-базы часовых поясов.
+Belarus does not change its clocks; the offset is a constant +3, so no timezone
+database is needed.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ _LINE = re.compile(
 
 
 def parse(line: str, now: datetime | None = None) -> str | None:
-    """«срок: 14.03 23:59» минского времени → момент в UTC, либо None."""
+    """"срок: 14.03 23:59" in Minsk time → a moment in UTC, or None."""
     m = _LINE.match(line or "")
     if not m:
         return None
@@ -27,7 +27,7 @@ def parse(line: str, now: datetime | None = None) -> str | None:
     day, month = int(m.group(1)), int(m.group(2))
     hour = int(m.group(3)) if m.group(3) else 23
     minute = int(m.group(4)) if m.group(4) else 59
-    # Месяц уже прошёл — значит имелся в виду следующий год.
+    # The month has already passed, so next year was meant.
     year = now.year + (1 if month < now.month else 0)
     try:
         local = datetime(year, month, day, hour, minute, tzinfo=MINSK)

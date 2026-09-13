@@ -1,4 +1,4 @@
-"""Состояние бота: привязки уникальны, события пишутся."""
+"""Bot state: bindings are unique, events get written."""
 
 import pytest
 
@@ -21,8 +21,8 @@ async def test_bind_and_read_back(store):
 async def test_one_student_one_account(store):
     await store.bind(100, "student-one", None, None)
     assert (await store.binding_of_student("student-one")).tg_id == 100
-    # Второй аккаунт на ту же запись обработчик обязан отклонить, но база
-    # тоже не должна тихо пустить дубль.
+    # A handler must reject a second account for the same record, but the
+    # database must not quietly allow a duplicate either.
     with pytest.raises(Exception):
         await store.bind(101, "student-one", None, None)
 

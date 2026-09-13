@@ -1,4 +1,4 @@
-"""Рассылки: реестр аудиторий, отправка, возобновление."""
+"""Broadcasts: the audience registry, sending, resuming."""
 
 from . import audiences, sender  # noqa: F401
 

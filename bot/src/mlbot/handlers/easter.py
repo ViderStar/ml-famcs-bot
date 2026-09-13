@@ -1,4 +1,4 @@
-"""Пасхалки. Тёплые и только про предмет — ничего про чужие оценки."""
+"""Easter eggs. Warm and strictly on topic — nothing about anyone's grades."""
 
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ async def joke(message: Message) -> None:
 
 
 def night_note() -> str | None:
-    """Приписка для тех, кто сидит в боте глубокой ночью."""
+    """A postscript for whoever is in the bot deep at night."""
     hour = datetime.now().hour
     if 2 <= hour < 5:
         return "\n\n<i>Коммитить в три ночи — традиция курса. Но выспаться тоже полезно.</i>"
@@ -91,5 +91,5 @@ def night_note() -> str | None:
 
 @router.message(F.text.startswith("/"))
 async def unknown_command(message: Message) -> None:
-    """Последний обработчик в цепочке: команда, которую никто не разобрал."""
+    """The last handler in the chain: a command nobody claimed."""
     await message.answer(texts.UNKNOWN_COMMAND)

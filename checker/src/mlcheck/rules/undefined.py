@@ -1,12 +1,12 @@
-"""Поиск имён, которые используются, но нигде не определены.
+"""Finding names that are used but defined nowhere.
 
-Сохранённые выводы маскируют проблему: ячейка, где переменная создавалась,
-удалена, а её вывод остался, и работа выглядит рабочей. При запуске с нуля
-такой ноутбук падает с NameError — то есть нарушает главное требование всех
-заданий курса.
+Saved outputs mask the problem: the cell that created a variable is deleted while
+its output remains, and the work looks like it runs. Started from scratch such a
+notebook fails with a NameError — breaking the main requirement of every course
+assignment.
 
-Проверка сознательно осторожная: при любой неуверенности (ячейка не разбирается,
-есть `from x import *`, используется exec/globals) она молчит.
+The check is deliberately cautious: at any uncertainty (a cell will not parse,
+there is a `from x import *`, exec/globals are used) it stays silent.
 """
 
 from __future__ import annotations
@@ -23,15 +23,15 @@ _MAGIC = re.compile(r"^\s*[%!].*$", re.M)
 _BUILTINS = set(dir(builtins)) | {
     "__file__", "__name__", "display", "get_ipython", "In", "Out", "exit", "quit",
 }
-# Отказываемся анализировать только там, где имена могут появляться динамически.
-# Чтение `if 'df' in locals()` этому не мешает — а вот запись через globals()[...] мешает.
+# Analysis is refused only where names can appear dynamically.
+# Reading `if 'df' in locals()` is fine — writing through globals()[...] is not.
 _BAIL = re.compile(
     r"\bimport\s+\*|\bexec\s*\(|\beval\s*\(|\b(?:globals|locals|vars)\s*\(\s*\)\s*\["
     r"|\bsetattr\s*\(|\b__import__\s*\(")
 
 
 class _Scope(ast.NodeVisitor):
-    """Собирает имена, определённые на уровне модуля, и все использованные."""
+    """Collects names defined at module level and every name used."""
 
     def __init__(self) -> None:
         self.defined: set[str] = set()
@@ -93,7 +93,7 @@ class _Scope(ast.NodeVisitor):
 
 
 def undefined_names(nb: Notebook) -> set[str] | None:
-    """Имена без определения. None — если проверку провести нельзя."""
+    """Names with no definition. None if the check cannot be performed."""
     scope = _Scope()
     for cell in nb.code_cells:
         src = _MAGIC.sub("", cell.source)
@@ -101,14 +101,14 @@ def undefined_names(nb: Notebook) -> set[str] | None:
             return None
         try:
             with warnings.catch_warnings():
-                # В студенческом коде хватает строк вроде "\d+" без r-префикса;
-                # предупреждения об этом не должны засорять вывод конвейера.
+        # Student code is full of strings like "\d+" without an r-prefix;
+        # warnings about that must not clutter the pipeline output.
                 warnings.simplefilter("ignore", SyntaxWarning)
                 tree = ast.parse(src)
         except SyntaxError:
             return None
         scope.visit(tree)
-    # `locals()`/`globals()` при чтении не создают имён, но и не мешают анализу.
+    # `locals()`/`globals()` when read create no names and do not block analysis.
     return {n for n in scope.used - scope.defined - _BUILTINS if not n.startswith("_")}
 
 

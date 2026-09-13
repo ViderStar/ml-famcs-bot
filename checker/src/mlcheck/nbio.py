@@ -1,12 +1,13 @@
-"""Чтение и нормализация ноутбуков.
+"""Reading and normalising notebooks.
 
-Две вещи, ради которых модуль существует:
+Two things this module exists for:
 
-1. `# YOUR CODE HERE` студенты не удаляют, а пишут код под ним. Поэтому
-   «не выполнено» определяется по пустому телу ячейки после вычитания
-   комментариев и маркеров, а не по наличию маркера.
-2. Медианный ноутбук курса почти целиком состоит из base64-картинок в выводах.
-   Перед отправкой в модель они вырезаются, иначе прогон дорожает на порядок.
+1. Students do not delete `# YOUR CODE HERE`; they write code under it. So "not
+   done" is decided by an empty cell body after comments and markers are
+   subtracted, not by the presence of a marker.
+2. The median course notebook is almost entirely base64 images in its outputs.
+   They are stripped before the model sees it, or the run costs an order of
+   magnitude more.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Каталоги, которые не содержат студенческих работ.
+# Directories that hold no student work.
 SKIP_DIRS = {
     ".git", ".ipynb_checkpoints", ".venv", "venv", "env", "site-packages",
     "node_modules", "__pycache__", ".idea", ".vscode", "catboost_info",
@@ -46,7 +47,7 @@ class Cell:
 
     @property
     def body(self) -> str:
-        """Код без комментариев, магий и маркеров-заготовок."""
+        """Code without comments, magics or template markers."""
         if not self.is_code:
             return self.source.strip()
         text = _COMMENT.sub("", self.source)
@@ -55,7 +56,7 @@ class Cell:
 
     @property
     def is_empty(self) -> bool:
-        """Ячейка не заполнена: остались только комментарии, маркер или pass."""
+        """The cell is unfilled: only comments, a marker or pass remain."""
         body = self.body
         if not body:
             return True
@@ -105,7 +106,7 @@ class Notebook:
 
     @property
     def source_text(self) -> str:
-        """Весь код одной строкой — для грепа и AST-разбора."""
+        """All the code as one string — for grepping and AST parsing."""
         return "\n".join(c.source for c in self.code_cells)
 
     @property
@@ -121,11 +122,11 @@ class Notebook:
         return [c for c in self.cells if c.errors]
 
     def execution_order_breaks(self) -> list[tuple[int, int]]:
-        """Пары (индекс ячейки, execution_count), нарушающие порядок сверху вниз.
+        """Pairs of (cell index, execution_count) that break top-to-bottom order.
 
-        Пустая история или строго возрастающие номера означают, что ноутбук
-        прогнали заново сверху вниз. Разрывы — признак, что «Restart & Run All»
-        не делали.
+        An empty history or strictly increasing numbers mean the notebook was
+        rerun from the top. Gaps are a sign that "Restart & Run All" was never
+        done.
         """
         seen: list[tuple[int, int]] = []
         breaks: list[tuple[int, int]] = []
@@ -150,12 +151,12 @@ def load(path: Path, rel: str | None = None) -> Notebook:
     nb = Notebook(path=path, rel=rel or path.name)
     try:
         raw = json.loads(path.read_text(encoding="utf-8", errors="replace"))
-    except Exception as exc:  # битый JSON — частый случай при конфликтах слияния
+    except Exception as exc:  # broken JSON — common after merge conflicts
         nb.error = f"не разбирается как JSON: {type(exc).__name__}"
         return nb
 
     if not isinstance(raw, dict) or "cells" not in raw:
-        # nbformat 3 хранил ячейки внутри worksheets
+        # nbformat 3 kept cells inside worksheets
         sheets = raw.get("worksheets") if isinstance(raw, dict) else None
         if sheets:
             raw = {"cells": sheets[0].get("cells", []), "nbformat": raw.get("nbformat")}
@@ -168,7 +169,7 @@ def load(path: Path, rel: str | None = None) -> Notebook:
         if not isinstance(c, dict):
             continue
         kind = c.get("cell_type", "raw")
-        # В nbformat 3 код лежал в input, а не в source.
+        # In nbformat 3 the code lived in input, not source.
         source = _coerce_source(c.get("source") if "source" in c else c.get("input"))
         nb.cells.append(
             Cell(
@@ -185,26 +186,26 @@ def load(path: Path, rel: str | None = None) -> Notebook:
 
 
 def iter_notebooks(root: Path):
-    """Все ноутбуки репозитория, кроме служебных каталогов."""
+    """Every notebook in the repository except service directories."""
     for p in sorted(root.rglob("*.ipynb")):
         if any(part in SKIP_DIRS for part in p.relative_to(root).parts):
             continue
         yield p
 
 
-# --- Подготовка текста для модели -------------------------------------------------
+# --- Preparing the text for the model ---------------------------------------------
 
-# Длинные табличные выводы режем сильнее: метрики и заголовки таблиц
-# помещаются, а простыни из сотен строк только раздувают разбор.
+    # Long tabular output is trimmed harder: metrics and table headers fit,
+    # while hundreds of rows only bloat the review.
 _MAX_OUTPUT_CHARS = 700
 
 
 def _render_output(o: dict) -> str:
     kind = o.get("output_type")
     if kind == "error":
-        # Трейсбеки сохраняем целиком: это самый ценный сигнал для рецензии.
+        # Tracebacks are kept whole: the most valuable signal for a review.
         tb = "\n".join(o.get("traceback") or [])
-        tb = re.sub(r"\x1b\[[0-9;]*m", "", tb)  # ANSI-раскраска
+        tb = re.sub(r"\x1b\[[0-9;]*m", "", tb)  # ANSI colouring
         return f"[ОШИБКА] {o.get('ename')}: {o.get('evalue')}\n{tb}"
     if kind == "stream":
         return _clip(_coerce_source(o.get("text")))
@@ -225,7 +226,7 @@ def _clip(text: str, limit: int = _MAX_OUTPUT_CHARS) -> str:
 
 
 def to_llm_text(nb: Notebook, max_chars: int) -> tuple[str, bool]:
-    """Компактное представление ноутбука. Возвращает текст и флаг обрезки."""
+    """A compact representation of a notebook. Returns the text and a truncation flag."""
     parts: list[str] = []
     for c in nb.cells:
         if c.kind == "markdown":

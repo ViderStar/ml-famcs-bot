@@ -1,4 +1,4 @@
-"""Общее для обработчиков: получить студента, привязанного к аккаунту."""
+"""Shared by handlers: get the student bound to an account."""
 
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ from ..store import Store
 
 
 async def _resolve(tg_id: int, course: Course, store: Store) -> Student | None:
-    # Тестер-режим идёт первым: администратор смотрит на бота глазами студента.
-    # Записать его может только админский обработчик, так что для обычного
-    # аккаунта эта ветка всегда пуста.
+    # Tester mode comes first: an admin is looking through a student's eyes.
+    # Only an admin handler can write it, so for an ordinary account this branch
+    # is always empty.
     key = await store.test_view(tg_id)
     if key and key in course.students:
         return course.students[key]
@@ -22,7 +22,7 @@ async def _resolve(tg_id: int, course: Course, store: Store) -> Student | None:
 
 async def bound_student(event: Message | CallbackQuery, course: Course,
                         store: Store) -> Student | None:
-    """Студент этого аккаунта, либо None с подсказкой пользователю."""
+    """The student for this account, or None plus a hint to the user."""
     student = await _resolve(event.from_user.id, course, store)
     if student is not None:
         return student
@@ -34,5 +34,5 @@ async def bound_student(event: Message | CallbackQuery, course: Course,
 
 
 async def student_of(tg_id: int, course: Course, store: Store) -> Student | None:
-    """Студент этого аккаунта без сообщений пользователю — для фоновых мест."""
+    """The student for this account without messaging the user — for background use."""
     return await _resolve(tg_id, course, store)

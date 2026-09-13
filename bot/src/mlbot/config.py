@@ -1,4 +1,4 @@
-"""Настройки бота из окружения."""
+"""Bot settings from the environment."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# Ключи вымышленных студентов. Один общий префикс — чтобы «это демо»
-# определялось по самому ключу, а не по списку, который забудут пополнить.
+# Keys of the fictional students. One shared prefix so that "this is demo" is
+# decided by the key itself, not by a list someone forgets to extend.
 DEMO_PREFIX = "demo-"
 
 
@@ -16,10 +16,10 @@ def _admin_ids(raw: str) -> frozenset[int]:
 
 
 def _flag(raw: str) -> bool:
-    """Выключенным считается только явное «нет».
+    """Only an explicit "no" counts as off.
 
-    Забыть переменную должно быть безопасно, поэтому пустое значение,
-    опечатка и любое неизвестное слово означают «предохранитель включён».
+    Forgetting the variable must be safe, so an empty value, a typo and any
+    unknown word all mean the catch is on.
     """
     return raw.strip().lower() not in {"0", "false", "no", "off", "нет"}
 
@@ -38,26 +38,26 @@ class Config:
     support_username: str
     data_root: Path
     db_path: Path
-    # Песочница: сообщения настоящим студентам не уходят. По умолчанию ВКЛЮЧЕНА —
-    # выключается только переменной окружения и перезапуском, кнопки в админке нет.
+    # Sandbox: messages never reach real students. ON by default — released only
+    # through the environment and a restart; there is deliberately no button.
     safe_mode: bool = True
-    # Кому в песочнице писать можно помимо администраторов.
+    # Who else may be written to in the sandbox besides admins.
     sandbox_chat_ids: frozenset[int] = frozenset()
-    # Каталог вымышленных студентов для проверки экранов.
+    # Directory of fictional students used to walk the screens.
     demo_root: Path = Path("demo")
-    # Где лежат отчёты проверки. По умолчанию — `data_root/out`; отдельным
-    # полем, чтобы тесты могли подставить синтетический поток, не трогая
-    # каталог, где лежат сам checker и материалы.
+    # Where grading reports live. Defaults to `data_root/out`; a separate field
+    # so tests can substitute the synthetic stream without touching the directory
+    # that holds the checker itself and the course materials.
     out_root: Path | None = None
-    # Куда бот пишет сам: out/ смонтирован только на чтение.
+    # Where the bot writes its own output: out/ is mounted read-only.
     export_dir: Path = Path("/state/export")
-    # Notion. `repr=False` обязателен: frozen-датакласс печатает себя целиком
-    # в любом трейсбеке, и токен уехал бы в лог при первой же ошибке.
+    # Notion. `repr=False` is mandatory: a frozen dataclass prints itself whole in
+    # any traceback, and the token would reach the log on the first error.
     notion_token: str = field(default="", repr=False)
     notion_db: str = field(default="", repr=False)
-    # GitHub: без токена 60 запросов в час — на поток в двести человек не хватит.
+    # GitHub: without a token 60 requests an hour — not enough for two hundred students.
     github_token: str = field(default="", repr=False)
-    # Направления третьего сезона; пусто — берём файл из пакета.
+    # Season 3 tracks; empty means the file shipped with the package.
     tracks_path: Path | None = None
 
     @property
@@ -89,11 +89,11 @@ class Config:
         return self.demo_root / "findings"
 
     def is_admin(self, user_id: int, username: str | None = None) -> bool:
-        """Права администратора по id либо по username.
+        """Admin rights by id or by username.
 
-        Username — способ выдать права тому, чей numeric id заранее неизвестен.
-        Он слабее: username можно освободить, и тогда его займёт кто угодно.
-        Поэтому админка показывает свой id — его стоит перенести в ADMIN_IDS.
+        Username is a way to grant rights when the numeric id is not known in
+        advance. It is weaker: a username can be released and then claimed by
+        anyone. That is why the panel shows your id — move it into ADMIN_IDS.
         """
         if user_id in self.admin_ids:
             return True
@@ -104,7 +104,7 @@ def load(env: dict[str, str] | None = None) -> Config:
     env = env if env is not None else dict(os.environ)
     token = env.get("BOT_TOKEN", "")
     if not token:
-        raise RuntimeError("не задан BOT_TOKEN — возьмите его у @BotFather")
+        raise RuntimeError("BOT_TOKEN is not set — get one from @BotFather")
     root = Path(env.get("DATA_ROOT", ".")).resolve()
     return Config(
         token=token,

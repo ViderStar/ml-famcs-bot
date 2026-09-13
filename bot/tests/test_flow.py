@@ -1,4 +1,4 @@
-"""Сквозной путь студента по логике бота, без телеграма."""
+"""A student's end-to-end path through the bot logic, without Telegram."""
 
 import pytest
 
@@ -16,19 +16,19 @@ async def store(tmp_path):
 
 
 async def test_student_journey(course, store, somebody):
-    # 1. Прислал ссылку — нашли кандидата.
+    # 1. They sent a link — a candidate was found.
     candidate = find_by_repo(course, somebody.repo)
     assert candidate is not None
 
-    # 2. Подтвердил фамилией — привязались.
+    # 2. They confirmed with a surname — bound.
     assert fio_matches(candidate, somebody.fio)
     await store.bind(555, candidate.key, "tester", "Тест")
 
-    # 3. Дальше студент достаётся только из привязки.
+    # 3. From here the student comes only from the binding.
     me = await student_of(555, course, store)
     assert me is not None and me.key == candidate.key
 
-    # 4. Экраны собираются.
+    # 4. The screens assemble.
     assert str(me.passed) in results_text(course, me)
     hw_id = me.submitted()[0]
     card = hw_card_text(course, me, hw_id, "не сдано")
@@ -56,7 +56,7 @@ async def test_findings_are_sorted_by_severity(course):
 
 
 def test_router_order_puts_onboarding_first():
-    """Состояния онбординга должны выигрывать у пасхалок и кнопок меню."""
+    """Onboarding states must beat easter eggs and menu buttons."""
     from mlbot.__main__ import ROUTERS
     from mlbot.handlers import easter, start
 

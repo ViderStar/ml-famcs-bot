@@ -1,4 +1,4 @@
-"""Точка входа: mlcheck <шаг>. Каждый шаг пишет свой артефакт и запускается отдельно."""
+"""Entry point: mlcheck <step>. Each step writes its own artifact and runs on its own."""
 
 from __future__ import annotations
 
@@ -39,8 +39,8 @@ def cmd_roster(args: argparse.Namespace) -> int:
             print(f"    {s.fio:<28} {s.raw_url}")
             if s.owner_repos:
                 best = max(s.owner_repos, key=_score_repo_name)
-                # Показываем только уверенные совпадения («ml-course», «mlcourse»);
-                # слабые вроде «bsu» или «famcs» дают ложные зацепки.
+            # Only confident matches are shown ("ml-course", "mlcourse");
+            # weak ones like "bsu" or "famcs" produce false leads.
                 if _score_repo_name(best) >= 80:
                     hints.append(f"    {s.fio:<28} возможно {s.owner}/{best}")
         if hints:
@@ -123,7 +123,7 @@ def cmd_similarity(args: argparse.Namespace) -> int:
     rubrics = load_all()
     size = cfg.similarity["shingle_size"]
 
-    # Первый проход: собираем ячейки, чтобы вычислить раздатку по самому потоку.
+    # First pass: collect cells so the handout can be inferred from the stream.
     collected: list[tuple[str, str, str, object]] = []
     cells_by_hw: dict[str, dict[str, list[str]]] = {}
     for w in pipeline.iter_work(cfg):
@@ -158,7 +158,7 @@ def cmd_similarity(args: argparse.Namespace) -> int:
     print(f"точных совпадений дельты: {kinds['exact']}")
     print(f"близких пар:              {kinds['near']}")
 
-    # Даты нужны только там, где есть точное совпадение: историю дотягиваем адресно.
+    # Dates are needed only where there is an exact match: history is deepened selectively.
     need = {p.a.key for p in pairs if p.kind == "exact"} | {p.b.key for p in pairs if p.kind == "exact"}
     if need:
         print(f"\nдотягиваю историю коммитов для {len(need)} репозиториев…")
@@ -196,7 +196,7 @@ def cmd_similarity(args: argparse.Namespace) -> int:
 
 
 def _collect_items(cfg, rubrics, mode: str, per_hw: int):
-    """Работы, которые пойдут в модель. Для discovery — небольшая выборка на тему."""
+    """Submissions that go to the model. For discovery, a small sample per topic."""
     from . import llm, pipeline
 
     by_hw: dict[str, list] = {}
@@ -209,7 +209,7 @@ def _collect_items(cfg, rubrics, mode: str, per_hw: int):
     for hw in sorted(by_hw):
         group = by_hw[hw]
         if mode == "discovery":
-            # Берём равномерно по списку, чтобы попались и сильные, и слабые работы.
+            # Sampled evenly across the list, so both strong and weak work is included.
             step = max(1, len(group) // per_hw)
             group = group[::step][:per_hw]
         items.extend(group)
@@ -230,7 +230,7 @@ def cmd_llm(args: argparse.Namespace) -> int:
     if mode == "student":
         return _cmd_llm_student(args, cfg, rubrics, catalog)
 
-    # Чтение всех ноутбуков — минута; нужно только там, где смотрят в работы.
+    # Reading every notebook takes a minute; only needed where work is inspected.
     items = (_collect_items(cfg, rubrics, mode, cfg.llm["discovery_per_hw"])
              if args.action in ("estimate", "export", "submit") else [])
 
@@ -249,7 +249,7 @@ def cmd_llm(args: argparse.Namespace) -> int:
         return 0
 
     if args.action == "export":
-        # Выгрузка для ручной рецензии: тексты работ и по одному промпту на тему.
+        # Export for manual review: submission texts and one prompt per topic.
         outdir = llm.input_dir(cfg, mode)
         (outdir / "_prompts").mkdir(exist_ok=True)
         seen_hw = set()
@@ -263,13 +263,13 @@ def cmd_llm(args: argparse.Namespace) -> int:
             text, cut = to_llm_text(it.notebook, max_chars)
             note = "\n\n(Ноутбук обрезан по длине.)" if cut else ""
             if args.delta and rubrics[it.hw].template_name:
-                # Для домашек на заготовке показываем только дописанное студентом:
-                # шаблон у всех одинаковый, читать его повторно незачем.
+            # For template-based homework only the student's additions are
+            # shown: the template is identical for everyone.
                 import dataclasses
                 from .templates import template_cell_bodies
                 tpl = template_cell_bodies(rubrics[it.hw].template_name)
-                # Ячейку заготовки оставляем, если студент её выполнил: именно
-                # там лежат метрики и трейсбеки, по которым оценивается работа.
+            # A template cell is kept if the student executed it: that is where
+            # the metrics and tracebacks used for grading live.
                 kept = [
                     c for c in it.notebook.cells
                     if re.sub(r"\s+", "", c.source) not in tpl
@@ -288,20 +288,20 @@ def cmd_llm(args: argparse.Namespace) -> int:
         return 0
 
     if args.action == "batches":
-        # Разбивка на пачки для субагентов: по одной теме на пачку, чтобы у
-        # агента был один промпт и единый критерий на весь свой список.
+        # Batching for subagents: one topic per batch, so an agent has one prompt
+        # and a single criterion for its whole list.
         import math
 
         indir = llm.input_dir(cfg, mode)
         outdir = cfg.paths.out / "batches"
         outdir.mkdir(parents=True, exist_ok=True)
-        # Стираем только пачки своего режима: student_*.txt живут рядом, и
-        # нарезка одного режима не должна уносить списки другого из-под агентов.
+        # Only this mode's batches are cleared: student_*.txt live alongside, and
+        # rebatching one mode must not pull another mode's lists out from under agents.
         for old in outdir.glob("*.txt"):
             if not old.name.startswith("student_"):
                 old.unlink()
 
-        # Уже разобранное пропускаем — прогон возобновляемый.
+        # Already reviewed work is skipped — the pass is resumable.
         done = {f.stem for f in llm.results_dir(cfg, mode).glob("*.json")}
         by_hw: dict[str, list[str]] = {}
         skipped = 0
@@ -334,7 +334,7 @@ def cmd_llm(args: argparse.Namespace) -> int:
         return 0
 
     if args.action == "verify":
-        # Что уже разобрано, что осталось, и всё ли соответствует схеме.
+        # What is reviewed, what is left, and whether it all matches the schema.
         import json as _json
 
         indir = llm.input_dir(cfg, mode)
@@ -446,7 +446,7 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 def _cmd_llm_student(args: argparse.Namespace, cfg, rubrics, catalog) -> int:
-    """Режим «портрет студента»: дайджесты из findings, пачки, проверка ответов."""
+    """Student portrait mode: digests from findings, batches, answer validation."""
     import json as _json
     import math
 
@@ -469,7 +469,7 @@ def _cmd_llm_student(args: argparse.Namespace, cfg, rubrics, catalog) -> int:
             if rep.get("status") != "ok":
                 continue
             if not any(h["status"] != "missing" for h in rep["homeworks"].values()):
-                continue                      # ни одной сдачи — портрет писать не о чем
+                continue                      # no submissions — nothing to write a portrait about
             text = llm.student_digest(rep, rubrics, catalog, cfg)
             (indir / f"{rep['key']}.txt").write_text(text, encoding="utf-8")
             sizes.append(len(text))
@@ -637,7 +637,7 @@ def cmd_telegram(args: argparse.Namespace) -> int:
 
 
 def cmd_export_season(args) -> int:
-    """Собрать ветку с материалами сезона. Пересборка безопасна и идемпотентна."""
+    """Build the season materials branch. Rebuilding is safe and idempotent."""
     from pathlib import Path
 
     from . import export_season

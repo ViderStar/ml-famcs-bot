@@ -1,8 +1,9 @@
-"""Сертификаты и фотографии с вручения: сопоставление и выдача.
+"""Certificates and ceremony photos: matching and handing them out.
 
-Цена ошибки здесь выше обычной: в PDF напечатано ФИО, и отправить студенту чужой
-сертификат — это выдать чужие персональные данные. Поэтому проверяем не только
-что файл нашёлся, но и что он именно того человека.
+The cost of a mistake here is higher than usual: a name is printed in the PDF,
+and sending a student someone else's certificate hands over someone else's
+personal data. So the check is not only that a file was found but that it belongs
+to that person.
 """
 
 import csv
@@ -35,25 +36,25 @@ def test_no_certificate_file_is_used_twice(awards):
 
 
 def test_certificate_pdf_contains_that_students_name(course, awards):
-    """Главная проверка: имя внутри PDF совпадает с тем, кому его отдадим.
+    """The key check: the name inside the PDF matches whoever we hand it to.
 
-    Работает только по настоящим сертификатам. В открытый репозиторий они не
-    входят — в каждом напечатано ФИО, — и на синтетических заглушках проверка
-    честно пропускается, а не делает вид, что прошла.
+    Works on real certificates only. They are not part of the public repository —
+    each carries a name — and on synthetic stubs the check skips honestly rather
+    than pretending to pass.
     """
     from mlcheck.awards import name_in_pdf
 
     first = course.certificate_file(awards[0]["key"]) if awards else None
     if first is None or not name_in_pdf(first):
-        pytest.skip("настоящих сертификатов рядом нет — в них ФИО выпускников")
+        pytest.skip("no real certificates here — they carry graduate names")
 
     checked = 0
     for a in awards:
         path = course.certificate_file(a["key"])
         assert path is not None, a["fio"]
         inside = name_in_pdf(path)
-        assert inside, f"{a['fio']}: имя из PDF не прочиталось"
-        assert norm(inside) == norm(a["fio"]), f"{a['fio']} ← {inside!r} в {path.name}"
+        assert inside, f"{a['fio']}: could not read a name from the PDF"
+        assert norm(inside) == norm(a["fio"]), f"{a['fio']} <- {inside!r} in {path.name}"
         checked += 1
     assert checked == len(awards)
 
@@ -65,9 +66,9 @@ def test_photo_filename_matches_the_student(course, awards):
         path = course.ceremony_photo(a["key"])
         assert path is not None, a["fio"]
         stem = unicodedata.normalize("NFC", path.stem)
-        # Опечатка в одну букву допустима, порядок слов — тоже; чужое имя — нет.
+        # A one-letter typo is fine, so is word order; someone else's name is not.
         assert word_set(stem) == word_set(a["fio"]) or _one_letter_apart(stem, a["fio"]), \
-            f"{a['fio']} ← {path.name}"
+            f"{a['fio']} <- {path.name}"
 
 
 def _one_letter_apart(a: str, b: str) -> bool:
@@ -76,7 +77,7 @@ def _one_letter_apart(a: str, b: str) -> bool:
 
 
 def test_only_graduates_get_files(course):
-    """У непрошедших файлов нет — ни сертификата, ни фотографии."""
+    """Those who did not pass have no files — no certificate, no photo."""
     for st in course.active:
         if st.certificate:
             continue
@@ -98,7 +99,7 @@ def test_button_callbacks_carry_no_student_key():
             assert ":" in b.callback_data and len(b.callback_data.split(":")) == 2
 
 
-# --- текст рассылки ---------------------------------------------------------------
+# --- mailing text -------------------------------------------------------------------
 
 def test_announcement_renders_for_every_graduate(course):
     from mlbot.announce import message_for
@@ -110,7 +111,7 @@ def test_announcement_renders_for_every_graduate(course):
         assert len(text) <= 4096
         for tag in ("b", "i"):
             assert text.count(f"<{tag}>") == text.count(f"</{tag}>")
-        # Род студента неизвестен — окончаний вида «закрыл(а)» быть не должно.
+        # The student's gender is unknown — no "closed(a)" style endings allowed.
         assert not re.search(r"\w+\((а|ла|ло)\)", text), text
 
 

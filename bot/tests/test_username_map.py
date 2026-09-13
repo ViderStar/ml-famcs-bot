@@ -1,8 +1,8 @@
-"""Узнавание по telegram-username и закрепление владельца записи.
+"""Recognition by telegram username and fixing the owner of a record.
 
-Форма сдачи домашек username не спрашивала — он взят из формы регистрации на
-курс (`mlcheck telegram`). Для 47 записей живого username нет вовсе, и там
-владельцем становится первый, кто подтвердит ФИО и ссылку.
+The submission form never asked for a username — it comes from the course
+registration form (`mlcheck telegram`). For 47 records there is no live username
+at all, and there the owner is the first to confirm name and link.
 """
 
 import csv
@@ -33,13 +33,13 @@ def test_index_only_holds_verified_links(cfg, course):
     links = {lk.username.lower(): lk for lk in read_map(cfg.out_dir / "telegram_map.csv")
              if lk.username}
     for name, key in course.usernames.items():
-        assert links[name].usable, f"@{name} попал в индекс, хотя связка ненадёжна"
+        assert links[name].usable, f"@{name} reached the index although the link is unreliable"
         assert links[name].key == key
 
 
 def test_index_has_no_duplicates(course):
-    # Один username не может указывать на двух студентов: иначе первый
-    # написавший увидел бы чужой разбор.
+    # One username cannot point at two students: otherwise whoever wrote first
+    # would see someone else's review.
     assert len(set(course.usernames.values())) == len(course.usernames)
 
 
@@ -58,24 +58,24 @@ def test_unknown_username_is_not_recognised(course):
 
 
 def test_dead_username_falls_back_to_manual_flow(cfg, course, tmp_path):
-    """Переименовавшийся студент по username не узнаётся — и это правильно."""
+    """A student who renamed themselves is not recognised by username — correctly so."""
     dead = [lk for lk in read_map(cfg.out_dir / "telegram_map.csv") if lk.exists == "no"]
-    assert dead, "в карте нет ни одного освободившегося username"
+    assert dead, "the map has no released usernames at all"
     for lk in dead:
         assert find_by_username(course, lk.username) is None
 
 
 async def test_first_claimant_becomes_the_owner(course, store):
-    """У записи нет живого username — владельцем становится первый пришедший."""
+    """The record has no live username — the first to arrive becomes the owner."""
     st = next(s for s in course.active if s.key not in course.usernames)
 
     await store.bind(100, st.key, "new_owner", "Первый")
     assert (await store.binding_of_student(st.key)).tg_id == 100
 
-    # Второй желающий получает отказ, а не чужой разбор.
+    # The second claimant is refused rather than handed someone else's review.
     taken = await store.binding_of_student(st.key)
     assert taken.tg_id != 200
-    assert taken.username == "new_owner"          # username закреплён за записью
+    assert taken.username == "new_owner"          # the username is fixed to the record
 
 
 async def test_recognised_student_cannot_be_taken_twice(course, store):

@@ -1,11 +1,11 @@
-"""Один потребитель очереди `sync_outbox`.
+"""A single consumer of the `sync_outbox` queue.
 
-Потребитель ровно один, поэтому гонок между приёмниками нет и блокировок не
-нужно. Устаревшие задания пропускаются по `synced_rev`: серия правок анкеты
-схлопывается до последней — в Notion не полетит десять запросов подряд.
+There is exactly one consumer, so there are no races between sinks and no locks
+are needed. Stale tasks are skipped by `synced_rev`: a run of form edits
+collapses to the last one — Notion does not get ten requests in a row.
 
-После нескольких неудач задание становится `diverged` и поднимает флаг
-администратору. Это единственная альтернатива тихой потере.
+After several failures a task becomes `diverged` and raises a flag for the
+admin. That is the only alternative to losing it silently.
 """
 
 from __future__ import annotations
@@ -16,8 +16,8 @@ import logging
 log = logging.getLogger("sync")
 
 SINKS = {}
-IDLE = 5.0          # пауза, когда очередь пуста
-BACKOFF = 30.0      # пауза после неудачи: сеть чинится не мгновенно
+IDLE = 5.0          # pause when the queue is empty
+BACKOFF = 30.0      # pause after a failure: the network does not heal instantly
 
 
 def _sinks():
@@ -28,21 +28,21 @@ def _sinks():
 
 
 async def once(cfg, store) -> int:
-    """Разгрести пачку. Возвращает, сколько заданий закрыто."""
+    """Drain a batch. Returns how many tasks were closed."""
     done = 0
     for task in await store.outbox_batch():
         handler = _sinks().get(task["sink"])
         if handler is None:
             await store.outbox_failed(task, f"неизвестный приёмник {task['sink']!r}")
             continue
-        # Более свежая ревизия уже доехала — это задание просто устарело.
+        # A newer revision already arrived — this task is simply stale.
         if await store.synced_rev(task["sink"], task["entity"], task["key"]) >= task["rev"]:
             await store.outbox_skip(task["id"])
             done += 1
             continue
         if task["sink"] == "notion" and not cfg.notion_ready:
-            # Токена нет — не ошибка, а «ещё не настроено». Задание ждёт в
-            # очереди; анкета при этом уже сохранена и никуда не денется.
+            # No token is not an error but "not configured yet". The task waits
+            # in the queue; the form is already saved and is going nowhere.
             continue
         try:
             remote = await handler(cfg, store, task)
@@ -57,7 +57,7 @@ async def once(cfg, store) -> int:
 
 
 async def run(cfg, store, stop: asyncio.Event | None = None) -> None:
-    """Фоновый цикл. Живёт столько же, сколько бот."""
+    """The background loop. Lives as long as the bot does."""
     while stop is None or not stop.is_set():
         try:
             done = await once(cfg, store)

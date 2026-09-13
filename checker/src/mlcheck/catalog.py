@@ -1,7 +1,7 @@
-"""Каталог типовых ошибок: статья на каждый код находки.
+"""The catalog of common mistakes: one article per finding code.
 
-Именно это читает телеграм-бот, поэтому у любой находки обязана быть статья,
-а у любой статьи — существующий код.
+This is what the Telegram bot reads, so every finding must have an article and
+every article an existing code.
 """
 
 from __future__ import annotations
@@ -28,9 +28,9 @@ class Article:
     detector: str
     body: str
     path: Path
-    # methodology — ошибка в ML-методологии или теории (утечка, валидация, метрики);
-    # hygiene — дисциплина работы с ноутбуком (не запущен, нет выводов, warnings).
-    # Боту это нужно, чтобы в «что подтянуть» советовать теорию, а не «выполни ячейки».
+    # methodology — a mistake in ML methodology or theory (leakage, validation, metrics);
+    # hygiene — notebook discipline (not executed, no conclusions, warnings).
+    # The bot needs this so "what to improve" advises theory, not "run the cells".
     kind: str = "methodology"
 
     @property
@@ -72,7 +72,7 @@ def load_all(cfg: Config | None = None) -> dict[str, Article]:
 
 @lru_cache(maxsize=8)
 def load_dir(path: Path) -> dict[str, Article]:
-    """Каталог из произвольного каталога — для тех, у кого своя раскладка файлов."""
+    """The catalog from an arbitrary directory — for anyone with a different layout."""
     out: dict[str, Article] = {}
     for p in sorted(Path(path).rglob("*.md")):
         art = _parse(p)
@@ -87,7 +87,7 @@ def known_codes(cfg: Config | None = None) -> set[str]:
 
 
 def expected_codes(cfg: Config | None = None) -> set[str]:
-    """Все коды, которые способен выдать конвейер."""
+    """Every code the pipeline can emit."""
     from .rubric import load_all as load_rubrics
 
     codes = {
@@ -109,6 +109,6 @@ def expected_codes(cfg: Config | None = None) -> set[str]:
 
 
 def coverage(cfg: Config | None = None) -> tuple[set[str], set[str]]:
-    """Возвращает (коды без статьи, статьи без кода)."""
+    """Returns (codes with no article, articles with no code)."""
     have, need = known_codes(cfg), expected_codes(cfg)
     return need - have, have - need

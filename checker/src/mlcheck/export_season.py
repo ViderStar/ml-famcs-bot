@@ -1,16 +1,13 @@
-"""Сборка репозитория материалов второго сезона.
+"""Building the season 2 materials repository.
 
-Командой, а не руками: ветку можно пересобрать после любой правки рубрик или
-каталога, и она не начнёт расходиться с тем, что показывает бот. Раскладка —
-как в репозитории первого сезона: `NN_Название_занятия/`, `Домашние_задания/`,
-README с таблицей занятий.
+By command rather than by hand: the branch can be rebuilt after any edit to the
+rubrics or the catalog, and it will not drift from what the bot shows. The
+layout follows the season 1 repository.
 
-Календарь восстановлен по самим слайдам — на титульном листе стоит дата, а в
-шапке имя докладчика. Это надёжнее, чем метки файловой системы: те показывают
-день, когда файлы скачали (31 августа), а не день занятия.
-
-Чего не было у первого сезона — раздела `Типовые_ошибки`: 149 разборов,
-собранных по итогам проверки 929 работ.
+The calendar is reconstructed from the course channel announcements: they carry
+the session number, date, venue, speaker and the files posted the same day.
+That beats PDF metadata, which lies twice — some slides were reused from season
+1 and keep another date and another author.
 """
 
 from __future__ import annotations
@@ -35,8 +32,8 @@ class Lesson:
     date: str
     title: str
     lecturer: str = ""
-    slides: tuple[str, ...] = ()        # презентации и конспекты
-    notebooks: tuple[str, ...] = ()     # раздаточные ноутбуки
+    slides: tuple[str, ...] = ()        # slides and notes
+    notebooks: tuple[str, ...] = ()     # handout notebooks
     homeworks: tuple[str, ...] = ()
 
     @property
@@ -45,17 +42,16 @@ class Lesson:
 
 
 def slug(text: str) -> str:
-    """Имя папки в стиле первого сезона: слова через подчёркивание."""
+    """A folder name in the season 1 style: words joined by underscores."""
     text = re.sub(r"[«»\"'(),.:;!?/\\]", "", text)
     text = re.sub(r"[\s—–-]+", "_", text.strip())
     return text.strip("_")
 
 
-# Занятия второго сезона — по анонсам в канале курса (@ml_course_famcs).
-# Канал авторитетнее всего остального: в нём стоит номер занятия, дата, место,
-# спикер и файлы, выложенные в тот же день. Метаданные PDF врут дважды — часть
-# слайдов переиспользована с первого сезона и хранит чужую дату и чужого автора
-# («Докладчик: Тима Бовт» на логистической регрессии, которую читал Артём).
+# Season 2 sessions, from the course channel announcements (@ml_course_famcs).
+# The channel outranks everything else: it carries the session number, date,
+# venue, speaker and the files posted that day. PDF metadata lies twice — some
+# slides were reused from season 1 and keep another date and another author.
 LESSONS: tuple[Lesson, ...] = (
     Lesson(1, "02.03.2026", "Лекция 1: История, инструменты и основные задачи",
            "Паша Кашмель",
@@ -111,8 +107,8 @@ LESSONS: tuple[Lesson, ...] = (
            slides=("Лекция_нейросети.pdf",)),
 )
 
-# Гостевые встречи после основной программы. Материалов почти не осталось —
-# но без них список занятий неполон, а спикеры заслуживают упоминания.
+# Guest talks after the main programme. Almost no materials survive, but without
+# them the session list is incomplete and the speakers deserve a mention.
 @dataclass(frozen=True)
 class Guest:
     date: str
@@ -135,7 +131,7 @@ GUESTS: tuple[Guest, ...] = (
 
 GUEST_DIR = "Гостевые_встречи"
 
-# Куда класть то, что к конкретному занятию не привязано.
+# Where to put whatever is not tied to a specific session.
 DATA_DIR = "Данные"
 EXTRA_DIR = "Дополнительно"
 HOMEWORK_DIR = "Домашние_задания"
@@ -143,27 +139,27 @@ MISTAKES_DIR = "Типовые_ошибки"
 
 DATA_FILES = {".csv", ".zip"}
 
-# Условия домашек, которые раздавались отдельным файлом.
+# Assignment texts that were handed out as separate files.
 HOMEWORK_FILES: dict[str, tuple[str, ...]] = {
     "hw03": ("ml_course_homework_3.pdf",),
     "hw04": ("ml_course_hw_4.pdf",),
     "hw09": ("hw_forest.md",),
     "hw10": ("hw_boosting.md",),
 }
-# Теорминимум по матанализу и линалу достался от первого сезона — он и там
-# лежит, но студенты второго пользовались этими же тремя файлами.
-# Другой экспорт того же материала. Байты различаются, поэтому проверка по
-# хэшу их не ловит, но класть в репозиторий обе копии незачем.
+# The maths primer came from season 1 — it is in that repository too, but season
+# 2 students used these same three files.
+# A different export of the same material. The bytes differ, so the hash check
+# does not catch them, but there is no point shipping both copies.
 SAME_AS = {
     "slides.pdf": "Lecture1slides.pdf",
     "Машинное_обучение_09.pdf": "Машинное обучение 09.pdf",
     "logreg_practice_student (1).ipynb": "logreg_practice_student.ipynb",
 }
 
-# Не выкладываем. Репозиторий публичный, а это операционные данные сервиса
-# проката самокатов — идентификаторы инцидентов, треки, метки краж — и разбор,
-# построенный на них. Кому они принадлежат и разрешена ли публикация, из
-# материалов не следует, а публикация необратима: спрашивать надо до, а не после.
+# Withheld. The repository is public, and this is operational data from a scooter
+# rental service — incident ids, tracks, theft labels — plus the analysis built on
+# it. Who owns it and whether publication is allowed does not follow from the
+# materials, and publication is irreversible: ask before, not after.
 WITHHELD = {
     "ml_dataset_20k.csv": "операционные данные сервиса самокатов",
     "scooter_alerts.ipynb": "разбор на операционных данных сервиса самокатов",
@@ -192,26 +188,27 @@ def sha1(path: Path) -> str:
 
 
 def hw_folder(hw_id: str, title: str) -> str:
-    """`03_KNN_метод_k_ближайших_соседей` — как в репозитории первого сезона."""
+    """`03_<topic title>` — the same shape as in the season 1 repository."""
     return f"{hw_id.removeprefix('hw')}_{slug(title)}"
 
 
 def nfc(name: str) -> str:
-    """Имя файла в одной нормализации.
+    """A file name in one normalisation form.
 
-    macOS хранит имена в NFD: «й» лежит на диске как «и» плюс краткая. Литерал
-    в коде — NFC, и сравнение строк молча не совпадает, хотя `exists()` даёт
-    True: файловая система сравнивает сама и по-своему. Без этого три лекции
-    попадали и в занятие, и в «без места».
+    macOS stores names as NFD: a Cyrillic "й" sits on disk as "и" plus a
+    combining breve. A literal in the code is NFC, so string comparison silently
+    fails even though `exists()` returns True — the filesystem compares on its
+    own terms. Without this, three lectures landed both in a session and in
+    "unplaced".
     """
     return unicodedata.normalize("NFC", name)
 
 
 def _copy(src: Path, dst_dir: Path, seen: dict[str, str], report: Report) -> bool:
-    """Скопировать, если такого содержимого ещё не клали.
+    """Copy unless this content has been placed already.
 
-    Сравнение по хэшу, а не по имени: `logreg_practice_student.ipynb` и
-    `logreg_practice_student (1).ipynb` — один и тот же файл.
+    Compared by hash, not by name: `logreg_practice_student.ipynb` and
+    `logreg_practice_student (1).ipynb` are the same file.
     """
     digest = sha1(src)
     if digest in seen:
@@ -249,11 +246,11 @@ def lesson_readme(lesson: Lesson, rubrics) -> str:
 
 
 def homework_readme(hw_id: str, rubric, cfg: Config) -> str:
-    """README домашки. Текст задания — если он сохранился отдельным файлом.
+    """A homework README. The assignment text, if it survived as its own file.
 
-    У семи тем задание жило прямо в раздаточном ноутбуке, и восстанавливать его
-    пересказом нечестно: вместо этого перечисляем пункты рубрики и говорим,
-    откуда они взялись.
+    For seven topics the assignment lived inside the handout notebook, and
+    reconstructing it by paraphrase would be dishonest: instead the rubric items
+    are listed together with a note about where they came from.
     """
     lines = [f"# {hw_id} — {rubric.title}", "", f"*{SEASON}*", ""]
     text = ""
@@ -322,8 +319,8 @@ def root_readme(rubrics, report: Report) -> str:
     ]
     for lesson in LESSONS:
         folder = lesson.folder
-        # Ссылка ведёт в папку всегда: даже без слайдов там README с темой,
-        # спикером и ссылкой на домашку.
+        # The link always leads to the folder: even with no slides it holds a
+        # README with the topic, the speaker and a link to the homework.
         materials = (f"[Материалы]({folder})" if (lesson.slides or lesson.notebooks)
                      else f"[Описание]({folder})")
         if lesson.homeworks:
@@ -382,7 +379,7 @@ def build(cfg: Config, out: Path) -> Report:
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "README.md").write_text(lesson_readme(lesson, rubrics), encoding="utf-8")
 
-    # Домашки
+    # Homework
     for hw_id in sorted(rubrics):
         rubric = rubrics[hw_id]
         folder = out / HOMEWORK_DIR / hw_folder(hw_id, rubric.title)
@@ -397,7 +394,7 @@ def build(cfg: Config, out: Path) -> Report:
                 _copy(src, folder, hw_seen, report)
                 placed.add(nfc(src.name))
 
-    # Типовые ошибки — то, чего у первого сезона нет
+    # Common mistakes — the section season 1 does not have
     mistakes = out / MISTAKES_DIR
     mistakes.mkdir(parents=True, exist_ok=True)
     (mistakes / "README.md").write_text(mistakes_readme(catalog), encoding="utf-8")
@@ -405,11 +402,11 @@ def build(cfg: Config, out: Path) -> Report:
         hw, _, short = art.code.partition(".")
         target = mistakes / hw
         target.mkdir(parents=True, exist_ok=True)
-        # Копируем сам файл статьи: путь к нему каталог уже знает.
+        # Copy the article file itself: the catalog already knows its path.
         if art.path.exists():
             shutil.copy2(art.path, target / f"{short}.md")
 
-    # Гостевые встречи
+    # Guest talks
     guests = out / GUEST_DIR
     guests.mkdir(parents=True, exist_ok=True)
     guest_seen: dict[str, str] = {}
@@ -426,7 +423,7 @@ def build(cfg: Config, out: Path) -> Report:
                 glines += [f"- [`{name}`]({name})", ""]
     (guests / "README.md").write_text("\n".join(glines), encoding="utf-8")
 
-    # Данные и всё, что не привязано к занятию, — но не молча в корзину
+    # Data and anything not tied to a session — but never silently binned
     data_seen: dict[str, str] = {}
     extra_seen: dict[str, str] = {}
     for src in sorted(materials.iterdir()):

@@ -1,4 +1,4 @@
-"""Движок декларативных проверок из рубрики плюс общие правила и утечки."""
+"""The engine for declarative rubric checks, plus common rules and leakage."""
 
 from __future__ import annotations
 
@@ -22,11 +22,11 @@ def _rx(pattern: str) -> re.Pattern:
 
 
 def student_delta(nb: Notebook, template_name: str | None) -> Notebook:
-    """Ноутбук без ячеек, дословно совпадающих с раздаточной заготовкой.
+    """The notebook without cells that match the handout template verbatim.
 
-    Пункты рубрики обязаны проверяться именно по нему: каркас заготовки
-    (`def sigmoid`, `class MyLogisticRegressionGD`, готовый код лекции)
-    иначе закрывает почти все требования без участия студента.
+    Rubric items must be checked against this: otherwise the template scaffolding
+    (`def sigmoid`, `class MyLogisticRegressionGD`, lecture code) closes almost
+    every requirement without the student's involvement.
     """
     tpl = template_cell_bodies(template_name)
     if not tpl:
@@ -36,7 +36,7 @@ def student_delta(nb: Notebook, template_name: str | None) -> Notebook:
 
 
 def _check_passes(check: Check, nb: Notebook) -> bool:
-    """Пункт рубрики ищется и в коде, и в тексте: часть требований словесные."""
+    """A rubric item is looked for in both code and prose: some requirements are verbal."""
     haystack = nb.source_text + "\n" + nb.markdown_text
 
     if check.markdown_bullets_min is not None:
@@ -62,8 +62,8 @@ class HwResult:
 
     @property
     def required_ratio(self) -> float:
-        # Пункты, отданные модели, до её вердикта считаем выполненными,
-        # иначе статика штрафовала бы дважды.
+        # Items delegated to the model count as done until it rules, otherwise the
+        # static pass would penalise them twice.
         return self.passed_required / self.total_required if self.total_required else 1.0
 
     @property
@@ -81,23 +81,23 @@ def run_all(nb: Notebook, rubric: Rubric) -> HwResult:
         res.findings.extend(undefined.check(nb, rubric.id))
 
     if not nb.ok or not nb.nonempty_code_cells:
-        # Разбирать пункты рубрики в пустой или битой работе смысла нет.
+        # There is no point checking rubric items in empty or broken work.
         res.total_required = len(rubric.required_checks)
         return res
 
-    # Ошибки, унаследованные из раздаточной заготовки, — не вина студента.
+    # Mistakes inherited from the handout template are not the student's fault.
     res.findings.extend(
         leakage.check(nb, rubric.id, template_lines(rubric.template_name), rubric.leakage_exempt)
     )
 
-    # По домашкам на заготовке пункты проверяем только по дописанному студентом.
+    # For template-based homework, items are checked against the student's additions only.
     target = nb if rubric.check_scope == "full" else student_delta(nb, rubric.template_name)
 
     for check in rubric.checks:
         if not check.is_rule:
             if check.required:
                 res.total_required += 1
-                res.passed_required += 1   # решает модель, см. required_ratio
+                res.passed_required += 1   # the model decides, see required_ratio
             res.llm_pending.append(check.id)
             continue
 

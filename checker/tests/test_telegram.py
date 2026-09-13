@@ -1,8 +1,8 @@
-"""Сшивка формы регистрации с формой сдачи.
+"""Stitching the registration form to the submission form.
 
-Главное требование — не склеить двух разных людей: ошибочная связка означает,
-что чужой человек увидит чей-то разбор. Поэтому тесты на отказ важнее тестов
-на успех.
+The main requirement is not to merge two different people: a wrong link means a
+stranger sees someone's review. So the refusal tests matter more than the
+success ones.
 """
 
 from mlcheck.telegram import Registration, clean_username, match
@@ -26,7 +26,7 @@ class TestUsername:
         assert clean_username("t.me/s/durov") == "durov"
 
     def test_fixes_russian_layout(self):
-        # «Сohanaia» набрано с кириллической С — в Telegram такого быть не может.
+        # The first letter here is Cyrillic — Telegram cannot have that.
         assert clean_username("@Сohanaia") == "Cohanaia"
 
     def test_rejects_prose(self):
@@ -47,7 +47,7 @@ class TestMatch:
         assert links[0].match == "exact"
 
     def test_yo_and_mixed_alphabet_in_fio(self):
-        # «Caфiя» набрано в двух алфавитах, «Артём» — с ё.
+        # One name is typed in two alphabets, the other carries ё.
         links = match(roster("Caфiя Артёмова"),
                       [reg("Артемова Сафия Ивановна", "@safia_a")])
         assert links[0].username == "safia_a"
@@ -68,7 +68,7 @@ class TestMatch:
         assert (links[0].match, links[0].username) == ("none", "")
 
     def test_duplicate_registration_is_one_person(self):
-        # Форму отправили дважды с одним username — это не однофамильцы.
+        # The form was submitted twice with one username — these are not namesakes.
         links = match(roster("Тарасов Егор"),
                       [reg("Тарасов Егор Сергеевич", "@egor_t"),
                        reg("Тарасов Егор Сергеевич", "@egor_t", row=9)])
@@ -82,7 +82,7 @@ class TestMatch:
         assert "однофамильц" in links[0].note
 
     def test_same_username_for_two_students_is_dropped(self):
-        # Кто-то указал чужой или общий username — связка ненадёжна для обоих.
+        # Someone gave a shared or foreign username — the link is unreliable for both.
         links = match(roster("Иванов Иван", "Петров Пётр"),
                       [reg("Иванов Иван Иванович", "@shared"),
                        reg("Петров Пётр Петрович", "@shared", row=3)])
@@ -90,7 +90,7 @@ class TestMatch:
         assert all(not lk.usable for lk in links)
 
     def test_different_person_is_not_matched_by_first_name(self):
-        # Совпадение только по имени — не совпадение.
+        # A match on the given name alone is not a match.
         links = match(roster("Гончарова Дарья"), [reg("Зайцева Дарья Михайловна", "@d")])
         assert links[0].match == "none"
 

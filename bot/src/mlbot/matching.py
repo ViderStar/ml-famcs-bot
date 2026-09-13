@@ -1,8 +1,8 @@
-"""Поиск студента по ссылке на репозиторий и по ФИО.
+"""Finding a student by repository link and by name.
 
-Проверка двойная: ссылка и ФИО должны сойтись на одной строке формы. По одной
-фамилии однокурсника чужой разбор не откроешь, а ссылку на чужой репозиторий
-без фамилии владельца тоже недостаточно знать.
+The check has two factors: link and name must land on the same form row. A
+classmate's surname alone will not open their review, and knowing someone
+else's repository link without the owner's name is not enough either.
 """
 
 from __future__ import annotations
@@ -15,16 +15,16 @@ from rapidfuzz import fuzz, process
 
 from .data import Course, Student
 
-# Порог совпадения ФИО. Ниже — просим уточнить, выше — считаем подтверждением.
+# Name-match threshold. Below it we ask to clarify, above it we take it as confirmation.
 FIO_THRESHOLD = 82
-# Порог, ниже которого подсказки по ФИО вообще не показываем.
+# Threshold below which no name suggestions are shown at all.
 SUGGEST_THRESHOLD = 60
 
 _SPACE = re.compile(r"\s+")
 
 
 def normalize_fio(text: str) -> str:
-    """ФИО без регистра, лишних пробелов и разницы е/ё."""
+    """A name without case, extra spaces or the е/ё distinction."""
     return _SPACE.sub(" ", (text or "").strip().lower().replace("ё", "е"))
 
 
@@ -37,14 +37,14 @@ def _repo_index(course: Course) -> dict[str, str]:
 
 
 def find_by_repo(course: Course, text: str) -> Student | None:
-    """Студент по ссылке на репозиторий. Принимает и полный URL, и owner/repo."""
+    """A student by repository link. Accepts a full URL or owner/repo."""
     slug = normalize_url(text).lower()
     if not slug:
         return None
     index = _repo_index(course)
     if slug in index:
         return course.students[index[slug]]
-    # Прислали ссылку на профиль или на файл внутри репозитория — берём owner/repo.
+    # They sent a profile link or a link to a file inside — take owner/repo.
     parts = slug.split("/")
     if len(parts) >= 2:
         short = "/".join(parts[:2])
@@ -64,7 +64,7 @@ class FioMatch:
 
 
 def find_by_fio(course: Course, text: str, limit: int = 5) -> list[FioMatch]:
-    """Кандидаты по ФИО, по убыванию похожести."""
+    """Candidates by name, most similar first."""
     query = normalize_fio(text)
     if len(query) < 4:
         return []
@@ -76,16 +76,16 @@ def find_by_fio(course: Course, text: str, limit: int = 5) -> list[FioMatch]:
 
 
 def fio_matches(student: Student, text: str) -> bool:
-    """Подтверждает ли введённое ФИО этого конкретного студента."""
+    """Whether the entered name confirms this particular student."""
     return fuzz.WRatio(normalize_fio(student.fio), normalize_fio(text)) >= FIO_THRESHOLD
 
 
 def find_by_username(course: Course, username: str | None) -> Student | None:
-    """Студент по telegram-username из формы регистрации.
+    """A student by telegram username from the registration form.
 
-    Username принадлежит аккаунту, который пишет боту, — это фактор посильнее
-    знания чужой ссылки. Но освободившийся username может занять кто угодно,
-    поэтому связка не привязывает молча, а показывает ФИО на подтверждение.
+    The username belongs to the account writing to the bot — a stronger factor
+    than knowing someone's link. But a released username can be claimed by
+    anyone, so this never binds silently: it shows the name for confirmation.
     """
     if not username:
         return None

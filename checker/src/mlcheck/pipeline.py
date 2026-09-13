@@ -1,4 +1,4 @@
-"""Связка шагов: кто участвует, какие у него ноутбуки, что к какой теме относится."""
+"""Wiring the steps: who takes part, which notebooks they have, what belongs to which topic."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ class StudentWork:
     student: Student
     submissions: dict[str, classify.Submission] = field(default_factory=dict)
     unmatched: list[Notebook] = field(default_factory=list)
-    broken: list[Notebook] = field(default_factory=list)   # не разбираются или пусты
+    broken: list[Notebook] = field(default_factory=list)   # unparseable or empty
     notebook_count: int = 0
 
     @property

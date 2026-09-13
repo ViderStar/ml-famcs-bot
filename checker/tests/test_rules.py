@@ -1,7 +1,7 @@
-"""Детерминированные правила: общие проверки и поиск утечек.
+"""Deterministic rules: common checks and leakage detection.
 
-Каждое ложное срабатывание, найденное на реальном корпусе, закреплено тестом:
-цена ошибки здесь — несправедливое замечание студенту.
+Every false positive found on the real corpus is pinned by a test: the cost of a
+mistake here is an unfair finding against a student.
 """
 
 from conftest import error_output, text_output
@@ -20,7 +20,7 @@ def _leak(write_nb, code, **kw):
     return _codes(leakage.check(nb, "hw04", **kw))
 
 
-# --- утечки: что обязано ловиться ------------------------------------------------
+# --- leakage: what must be caught ---------------------------------------------------
 
 def test_scaler_fitted_before_split_is_leakage(write_nb):
     code = ("X_scaled = scaler.fit_transform(X)\n"
@@ -46,10 +46,10 @@ def test_target_encoding_with_y_is_leakage(write_nb):
     assert "common.fit_before_split" in _leak(write_nb, code)
 
 
-# --- утечки: что ловиться НЕ должно ----------------------------------------------
+# --- leakage: what must NOT be caught -----------------------------------------------
 
 def test_fit_on_train_is_not_leakage(write_nb):
-    """`X_train` содержит подчёркивание, и граница слова слева здесь не работает."""
+    """`X_train` contains an underscore, so a left word boundary does not work here."""
     code = ("X_train, X_test = train_test_split(X)\n"
             "scaler.fit(X_train)\n"
             "X_test_s = scaler.transform(X_test)\n")
@@ -57,7 +57,7 @@ def test_fit_on_train_is_not_leakage(write_nb):
 
 
 def test_label_encoding_of_target_is_not_leakage(write_nb):
-    """LabelEncoder лишь перечисляет категории и статистики не выучивает."""
+    """LabelEncoder only enumerates categories and learns no statistics."""
     code = ("y = label_encoder.fit_transform(df['Species'])\n"
             "X_train, X_test = train_test_split(X, y)\n")
     assert _leak(write_nb, code) == set()
@@ -70,7 +70,7 @@ def test_onehot_without_target_is_not_leakage(write_nb):
 
 
 def test_tsne_is_not_leakage(write_nb):
-    """t-SNE трансдуктивен: у него нет transform, fit_transform — единственный путь."""
+    """t-SNE is transductive: it has no transform, fit_transform is the only way."""
     code = ("X_train, X_test = train_test_split(X)\n"
             "X_tsne_test = tsne.fit_transform(X_test)\n")
     assert _leak(write_nb, code) == set()
@@ -90,20 +90,20 @@ def test_pipeline_makes_scaling_safe(write_nb):
 
 
 def test_template_lines_are_not_blamed_on_student(write_nb):
-    """`pca_practice_student.ipynb` сам масштабирует весь датасет до split."""
+    """`pca_practice_student.ipynb` itself scales the whole dataset before the split."""
     code = ("X_scaled = scaler.fit_transform(X)\n"
             "X_train, X_test = train_test_split(X_scaled, y)\n")
     tpl = frozenset({"X_scaled=scaler.fit_transform(X)"})
-    assert "common.fit_before_split" in _leak(write_nb, code), "сам по себе это утечка"
-    assert _leak(write_nb, code, template_lines=tpl) == set(), "но строка из раздатки — не вина студента"
+    assert "common.fit_before_split" in _leak(write_nb, code), "on its own this is a leak"
+    assert _leak(write_nb, code, template_lines=tpl) == set(), "but a line from the handout is not the student's fault"
 
 
 def test_leakage_needs_a_split_to_exist(write_nb):
-    """Без разделения выборки говорить об утечке нечего."""
+    """With no split there is nothing to call leakage."""
     assert _leak(write_nb, "X_scaled = scaler.fit_transform(X)\n") == set()
 
 
-# --- общие проверки ---------------------------------------------------------------
+# --- common checks ------------------------------------------------------------------
 
 def test_unexecuted_notebook_is_critical(write_nb):
     nb = nbio.load(write_nb([("code", "import pandas as pd\ndf = pd.read_csv('a.csv')", None)]))
@@ -153,7 +153,7 @@ def test_empty_notebook_short_circuits(write_nb):
 
 
 def test_seed_is_not_required_without_randomness(write_nb):
-    """В чистом EDA без разбиения и моделей фиксировать нечего."""
+    """Pure EDA with no split and no models has nothing to fix."""
     nb = nbio.load(write_nb([
         ("markdown", "## Выводы\n\n" + "Текст. " * 40),
         ("code", "df = pd.read_csv('a.csv')\ndf.describe()\ndf.isnull().sum()\n", 1, [text_output()]),
@@ -170,8 +170,8 @@ def test_seed_is_required_when_splitting(write_nb):
 
 
 def test_template_markdown_does_not_count_as_own_conclusions(write_nb):
-    """Заготовка полна пояснений — работа без единого своего слова не должна
-    выглядеть документированной."""
+    """The template is full of prose — work without a single word of their own
+    must not look documented."""
     tpl_md = "## Шаг 1. Разделение данных\n\n" + "Пояснение из заготовки. " * 20
     nb = nbio.load(write_nb([
         ("markdown", tpl_md),
@@ -180,7 +180,7 @@ def test_template_markdown_does_not_count_as_own_conclusions(write_nb):
     template_md = frozenset({" ".join(tpl_md.split())})
     codes = _codes(common.check(nb, "hw05", template_md))
     assert "common.no_own_conclusions" in codes
-    assert "common.no_conclusions" not in codes, "markdown в файле есть, вопрос в авторстве"
+    assert "common.no_conclusions" not in codes, "the file has markdown; authorship is the question"
 
 
 def test_own_markdown_satisfies_the_check(write_nb):
@@ -195,13 +195,12 @@ def test_own_markdown_satisfies_the_check(write_nb):
 
 
 def test_template_scaffolding_does_not_satisfy_rubric_points():
-    """Каркас заготовки не должен закрывать пункты задания.
+    """Template scaffolding must not close assignment items.
 
-    До этой правки нетронутые раздаточные ноутбуки проходили 67 обязательных
-    пунктов из рубрик: регулярки ловили `def sigmoid`, `class MyLogisticRegressionGD`
-    и прочий каркас, написанный преподавателем.
+    Before this change untouched handout notebooks passed 67 required rubric
+    items: the regexes caught `def sigmoid`, `class MyLogisticRegressionGD` and
+    other scaffolding written by the teacher.
     """
-    from pathlib import Path
 
     from mlcheck.config import load
     from mlcheck.rules.engine import _check_passes, student_delta
@@ -224,19 +223,19 @@ def test_template_scaffolding_does_not_satisfy_rubric_points():
         passing += [
             f"{hw}.{c.id}" for c in rubric.rule_checks if c.required and _check_passes(c, delta)
         ]
-    assert passing == [], f"нетронутая заготовка закрывает пункты: {passing}"
+    assert passing == [], f"an untouched template closes items: {passing}"
 
 
 def test_student_delta_keeps_modified_cells(write_nb):
     from mlcheck.rules.engine import student_delta
 
     nb = nbio.load(write_nb([
-        ("code", "def sigmoid(z):\n    # YOUR CODE HERE\n    ...\n"),          # как в заготовке
-        ("code", "def sigmoid(z):\n    return 1 / (1 + np.exp(-z))\n"),        # переписано студентом
+        ("code", "def sigmoid(z):\n    # YOUR CODE HERE\n    ...\n"),          # as in the template
+        ("code", "def sigmoid(z):\n    return 1 / (1 + np.exp(-z))\n"),        # rewritten by the student
     ]))
     template = frozenset({"defsigmoid(z):#YOURCODEHERE..."})
     kept = student_delta(nb, None)
-    assert len(kept.cells) == 2, "без шаблона ничего не вычитается"
+    assert len(kept.cells) == 2, "with no template nothing is subtracted"
 
     import mlcheck.templates as t
     t.template_cell_bodies.cache_clear()
@@ -255,7 +254,7 @@ def test_student_delta_keeps_modified_cells(write_nb):
 
 
 def test_undefined_name_is_detected(write_nb):
-    """Ячейку, где переменная создавалась, удалили — вывод остался, работа падает."""
+    """The cell that created the variable was deleted — the output stayed, the work fails."""
     from mlcheck.rules import undefined
 
     nb = nbio.load(write_nb([
@@ -289,7 +288,7 @@ def test_function_args_and_imports_are_known(write_nb):
 
 
 def test_analysis_bails_out_on_dynamic_names(write_nb):
-    """При exec и записи через globals() статический анализ молчит."""
+    """With exec and writes through globals() the static analysis stays silent."""
     from mlcheck.rules import undefined
 
     nb = nbio.load(write_nb([("code", "globals()['x'] = 1\nprint(x)\n", 1)]))
@@ -297,7 +296,7 @@ def test_analysis_bails_out_on_dynamic_names(write_nb):
 
 
 def test_reading_locals_does_not_block_analysis(write_nb):
-    """`if 'df' in locals()` — защитная проверка, анализу она не мешает."""
+    """`if 'df' in locals()` is a guard clause; it does not block the analysis."""
     from mlcheck.rules import undefined
 
     nb = nbio.load(write_nb([("code", "if 'df' in locals():\n    print(missing_var)\n", 1)]))
@@ -305,14 +304,14 @@ def test_reading_locals_does_not_block_analysis(write_nb):
 
 
 def test_secret_is_detected_but_never_stored(write_nb):
-    """Факт утечки фиксируем, само значение ключа в отчёт попасть не должно."""
+    """The leak is recorded; the key value itself must never reach the report."""
     key = "KGAT_" + "a1b2c3d4e5" * 3
     nb = nbio.load(write_nb([("code", f'os.environ["KAGGLE_KEY"] = "{key}"\n', 1)]))
     findings = common.check_extra(nb, "hw02")
     secret = [f for f in findings if f.code == "common.secret_in_repo"]
-    assert secret, "ключ должен быть найден"
+    assert secret, "the key must be found"
     assert secret[0].severity == Severity.CRITICAL
-    assert key not in secret[0].detail, "значение ключа нельзя сохранять в находке"
+    assert key not in secret[0].detail, "the key's value must not be stored in a finding"
     assert "Kaggle" in secret[0].detail
 
 
@@ -322,9 +321,9 @@ def test_ordinary_code_is_not_mistaken_for_a_secret(write_nb):
 
 
 def test_base64_blob_is_not_mistaken_for_an_aws_key(write_nb):
-    """Внутри base64-картинки встречается «AKIA» с большими буквами подряд."""
-    # Собираем из кусков: целиком записанная строка сама срабатывает
-    # у сканеров секретов, хотя это картинка.
+    """A base64 image can contain "AKIA" followed by run-on capitals."""
+    # Assembled from pieces: written out whole, the string trips secret scanners
+    # even though it is an image.
     blob = ("iVBORw0KGgoAAAANSUhEUg" + "AK" + "IA" + "1234567890ABCDEFGHIJ") * 3
     nb = nbio.load(write_nb([("code", f'img = "{blob}"\n', 1)]))
     assert "common.secret_in_repo" not in _codes(common.check_extra(nb, "hw02"))
@@ -348,7 +347,7 @@ def test_ordinary_russian_text_is_not_an_injection(write_nb):
     assert "common.prompt_injection_attempt" not in _codes(common.check_extra(nb, "hw02"))
 
 
-# --- тяжесть утечек ---------------------------------------------------------------
+# --- leakage severity ----------------------------------------------------------------
 
 def _severity(write_nb, code, wanted):
     nb = nbio.load(write_nb([("code", code, 1)]))
@@ -356,11 +355,11 @@ def _severity(write_nb, code, wanted):
 
 
 def test_fit_before_split_is_major_not_critical(write_nb):
-    """Решение преподавателя: утечка через fit до разбиения не заваливает тему.
+    """The teacher's decision: a fit before the split no longer fails a topic.
 
-    Ошибка настоящая и остаётся в разборе, но одна и та же во всех работах —
-    скопирована из общего шаблона — и одна закрывала двадцать зачётов при
-    полностью выполненных заданиях.
+    The mistake is real and stays in the review, but it is identical across
+    submissions — copied from a shared template — and on its own it failed twenty
+    otherwise complete assignments.
     """
     code = ("X[num] = imputer.fit_transform(X[num])\n"
             "X_train, X_test = train_test_split(X)\n")
@@ -368,7 +367,7 @@ def test_fit_before_split_is_major_not_critical(write_nb):
 
 
 def test_fit_on_test_stays_critical(write_nb):
-    """Обучение преобразования на самом тесте — уже не небрежность, а подгонка."""
+    """Fitting a transform on the test set itself is no longer carelessness but overfitting."""
     code = ("X_train, X_test = train_test_split(X)\n"
             "X_test_scaled = scaler.fit_transform(X_test)\n")
     assert _severity(write_nb, code, "common.fit_on_test") == Severity.CRITICAL

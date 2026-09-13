@@ -1,4 +1,4 @@
-"""Клавиатуры. Данные callback короткие: телеграм ограничивает их 64 байтами."""
+"""Keyboards. Callback data is short: Telegram limits it to 64 bytes."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ def main_menu(is_admin: bool = False) -> ReplyKeyboardMarkup:
 
 
 def guest_menu() -> ReplyKeyboardMarkup:
-    """Для непривязанного аккаунта: только то, что работает без привязки."""
+    """For an unbound account: only what works without a binding."""
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text=MAIN[4]), KeyboardButton(text=MAIN[5])]],
         resize_keyboard=True,
@@ -33,7 +33,7 @@ def guest_menu() -> ReplyKeyboardMarkup:
 
 
 def admin_guest_menu() -> ReplyKeyboardMarkup:
-    """Для администратора без привязки: своей записи студента у него нет."""
+    """For an admin with no binding: they have no student record of their own."""
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text="🛠 Админка")],
                   [KeyboardButton(text=MAIN[4]), KeyboardButton(text=MAIN[5])]],
@@ -43,7 +43,7 @@ def admin_guest_menu() -> ReplyKeyboardMarkup:
 
 
 def confirm_self() -> InlineKeyboardMarkup:
-    """Подтверждение узнавания по username. Ключ студента здесь не передаём."""
+    """Confirming recognition by username. The student key is not passed here."""
     return InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="Да, это я", callback_data="ident:yes"),
         InlineKeyboardButton(text="Нет, я другой", callback_data="ident:no"),
@@ -121,10 +121,10 @@ def reference_articles(codes: list[tuple[str, str]]) -> InlineKeyboardMarkup:
 
 
 def support(username: str) -> InlineKeyboardMarkup | None:
-    """Кнопка «написать преподавателю».
+    """The "write to the teacher" button.
 
-    Без `SUPPORT_USERNAME` кнопки нет: ссылка `t.me/` ведёт в никуда, а
-    неработающая кнопка хуже отсутствующей.
+    Without `SUPPORT_USERNAME` there is no button: a `t.me/` link leads nowhere,
+    and a broken button is worse than a missing one.
     """
     if not username:
         return None
@@ -134,7 +134,7 @@ def support(username: str) -> InlineKeyboardMarkup | None:
 
 
 def awards_buttons(has_certificate: bool, has_photo: bool) -> InlineKeyboardMarkup | None:
-    """Забрать документы. Ключ студента в callback не кладём — он из привязки."""
+    """Collecting the documents. The student key stays out of callback data — it comes from the binding."""
     rows = []
     if has_certificate:
         rows.append([InlineKeyboardButton(text="📜 Получить сертификат",
@@ -146,7 +146,7 @@ def awards_buttons(has_certificate: bool, has_photo: bool) -> InlineKeyboardMark
 
 
 def claim_card(claim_id: int) -> InlineKeyboardMarkup:
-    """Решение по заявке. В callback только номер заявки — не ключ студента."""
+    """A claim decision. Callback data carries the claim number only, never the student key."""
     return InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="✅ Это он", callback_data=f"adm:claim:ok:{claim_id}"),
         InlineKeyboardButton(text="❌ Отказать", callback_data=f"adm:claim:no:{claim_id}"),

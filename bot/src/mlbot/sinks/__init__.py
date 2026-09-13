@@ -1,8 +1,8 @@
-"""Приёмники анкет: файл рядом с ботом и таблица Notion.
+"""Application sinks: a file beside the bot and a Notion table.
 
-Своя база — первична и всегда права. Остальные два получают проекцию через
-очередь `sync_outbox`, и обратного импорта нет: два писателя в одну модель
-теряют данные тихо.
+Our own database is primary and always right. The other two receive a projection
+through the `sync_outbox` queue, and there is no reverse import: two writers into
+one model lose data silently.
 """
 
 from . import csv_file, notion, worker  # noqa: F401

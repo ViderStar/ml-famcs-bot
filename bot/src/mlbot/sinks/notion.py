@@ -1,14 +1,15 @@
-"""Таблица Notion — голый HTTP через aiohttp.
+"""The Notion table — plain HTTP over aiohttp.
 
-`aiohttp` уже стоит транзитивно от aiogram; `notion-client` притащил бы `httpx`
-ради экономии сорока строк, которые всё равно пришлось бы тестировать. Вызовов
-нужно три: найти страницу по tg_id, создать, обновить.
+`aiohttp` is already there transitively via aiogram; `notion-client` would drag
+in `httpx` to save forty lines that would need testing anyway. Three calls are
+needed: find a page by tg_id, create, update.
 
-Версия API прибита заголовком: без него Notion отдаёт «последнюю», и схема
-ответа однажды меняется молча.
+The API version is pinned in a header: without it Notion serves "the latest",
+and the response schema changes silently one day.
 
-Создание идемпотентно: перед `POST` идёт запрос по числовому свойству `tg_id`.
-Перезапуск между «страница создана» и «id записан» не породит дубль.
+Creation is idempotent: a query by the numeric `tg_id` property precedes the
+`POST`. A restart between "page created" and "id recorded" will not make a
+duplicate.
 """
 
 from __future__ import annotations
@@ -23,8 +24,8 @@ API = "https://api.notion.com/v1"
 VERSION = "2022-06-28"
 TIMEOUT = aiohttp.ClientTimeout(total=20)
 
-# Свойства таблицы. Имена — как в интерфейсе Notion; тип определяет, каким
-# ключом уходит значение.
+# Table properties. Names as they appear in the Notion UI; the type decides
+# which key the value is sent under.
 PROPS: tuple[tuple[str, str, str], ...] = (
     ("tg_id", "number", "tg_id"),
     ("Телеграм", "rich_text", "username"),
@@ -94,10 +95,10 @@ async def _post(session, url: str, cfg, payload: dict) -> dict:
 
 
 async def find_page(session, cfg, tg_id: int) -> str | None:
-    """Страница с этим tg_id, если она уже есть.
+    """The page with this tg_id, if one already exists.
 
-    Делает создание идемпотентным: без этого запроса перезапуск между «создали»
-    и «запомнили id» дал бы второго человека в таблице.
+    This is what makes creation idempotent: without the query, a restart between
+    "created" and "id remembered" would put the same person in twice.
     """
     payload = {"filter": {"property": "tg_id", "number": {"equals": int(tg_id)}},
                "page_size": 1}
@@ -140,7 +141,7 @@ async def sync(cfg, store, task: dict) -> str | None:
 
 
 async def fetch_all(cfg) -> list[dict]:
-    """Что лежит в таблице — для экрана сверки. Ничего не меняет."""
+    """What the table holds — for the reconciliation screen. Changes nothing."""
     if not cfg.notion_ready:
         raise NotionError("нет NOTION_TOKEN или NOTION_DB")
     out, cursor = [], None

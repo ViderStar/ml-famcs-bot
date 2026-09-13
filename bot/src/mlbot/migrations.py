@@ -1,18 +1,18 @@
-"""Версионированная схема базы.
+"""Versioned database schema.
 
-Раньше `init()` просто прогонял `executescript(SCHEMA)` с `CREATE TABLE IF NOT
-EXISTS`. Новые таблицы так появляются, а новые **колонки** в уже существующих —
-нет: скрипт молча ничего не делает, и код начинает читать поле, которого в базе
-нет. На живой базе с 74 привязками это выяснилось бы в рантайме.
+`init()` used to just run `executescript(SCHEMA)` with `CREATE TABLE IF NOT
+EXISTS`. New tables appear that way, new **columns** in existing ones do not:
+the script silently does nothing, and the code starts reading a field the
+database lacks. On a live database with 74 bindings that surfaces at runtime.
 
-Версия лежит в `PRAGMA user_version` — целое число в заголовке файла базы.
-Отдельная таблица не нужна, и версия физически не может разойтись с файлом,
-который описывает.
+The version lives in `PRAGMA user_version` — an integer in the database file
+header. No extra table is needed, and the version physically cannot drift from
+the file it describes.
 
-Правило: **миграции только дописываются в конец**. Уже выпущенную не
-редактируют — на живой базе она давно применена, и правка туда не доедет.
-Внутри — только `CREATE` и `ALTER TABLE ADD COLUMN`; ничего, что теряет данные
-(закреплено тестом `test_migrations.py`).
+Rule: **migrations are append-only**. A released one is never edited — on a live
+database it was applied long ago and the edit will never arrive. Inside, nothing
+but `CREATE` and `ALTER TABLE ADD COLUMN`; nothing that loses data (pinned by
+`test_migrations.py`).
 """
 
 from __future__ import annotations
@@ -22,9 +22,9 @@ from pathlib import Path
 
 import aiosqlite
 
-# --- 1. Исходная схема ---------------------------------------------------------
-# Состояние, которое порождает сам бот. Оценки и разборы здесь не хранятся —
-# они читаются с диска.
+# --- 1. Initial schema ---------------------------------------------------------
+# State the bot itself produces. Grades and reviews are not kept here — they are
+# read from disk.
 _V1_BASE = """
 CREATE TABLE IF NOT EXISTS bindings (
     tg_id       INTEGER PRIMARY KEY,
@@ -42,17 +42,16 @@ CREATE TABLE IF NOT EXISTS events (
 );
 CREATE INDEX IF NOT EXISTS events_kind ON events(kind);
 CREATE INDEX IF NOT EXISTS events_tg ON events(tg_id);
--- Тестер-режим администратора: чьими глазами он сейчас смотрит на бота.
--- Пишут сюда только админские обработчики, поэтому у обычного аккаунта записи
--- здесь не бывает.
+-- Admin tester mode: whose eyes they are currently looking through.
+-- Only admin handlers write here, so an ordinary account never has a row.
 CREATE TABLE IF NOT EXISTS test_views (
     tg_id       INTEGER PRIMARY KEY,
     student_key TEXT NOT NULL,
     since       TEXT NOT NULL DEFAULT (datetime('now'))
 );
--- Заявки на доступ к записи, за которой уже закреплён другой telegram-username.
--- Появились после случая, когда посторонний аккаунт привязался к записи студентки
--- по её ФИО и ссылке на репозиторий: и то и другое известно однокурсникам.
+-- Claims for a record already tied to another telegram username.
+-- Added after an outsider bound to a student's record using her name and
+-- repository link: classmates know both.
 CREATE TABLE IF NOT EXISTS claims (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     tg_id       INTEGER NOT NULL,
@@ -74,24 +73,24 @@ CREATE TABLE IF NOT EXISTS support (
 );
 """
 
-# --- 2. Вымышленные тестовые сущности ------------------------------------------
-# Пока админ смотрит глазами демо-студента, каждое его нажатие пишется в
-# `events` под его же tg_id. Без этой пометки выдуманные визиты попадут в
-# «Что читают» и в сводку — то есть проверка бота будет менять его статистику.
+# --- 2. Fictional test entities ------------------------------------------------
+# While an admin looks through a demo student's eyes, every press is written to
+# `events` under the admin's own tg_id. Without this flag, invented visits land
+# in "what people read" and in the summary — walking the bot would change its stats.
 _V2_DEMO = """
 ALTER TABLE bindings ADD COLUMN demo INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE events   ADD COLUMN demo INTEGER NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS events_demo ON events(demo);
 """
 
-# --- 3. Рассылки через интерфейс -----------------------------------------------
-# Составной первичный ключ в `broadcast_targets` делает дубль физически
-# невозможным: даже двойной запуск не отправит человеку два письма.
+# --- 3. Broadcasts from the interface -------------------------------------------
+# The composite primary key on `broadcast_targets` makes a duplicate physically
+# impossible: even a double launch will not send anyone two letters.
 #
-# Список адресатов замораживается в момент подтверждения, одной транзакцией с
-# созданием рассылки. Возобновление читает этот список и **никогда не
-# перерешивает аудиторию** — иначе в добавку попали бы привязавшиеся между
-# началом и обрывом, а отчёт соврал бы про число отправленных.
+# The recipient list is frozen at confirmation, in one transaction with creating
+# the broadcast. Resuming reads that list and **never re-decides the audience** —
+# otherwise people who bound between the start and the crash would be swept in,
+# and the report would lie about how many were sent.
 _V3_BROADCASTS = """
 CREATE TABLE IF NOT EXISTS broadcasts (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -120,14 +119,14 @@ CREATE INDEX IF NOT EXISTS broadcast_targets_pending
     ON broadcast_targets(broadcast_id, status);
 """
 
-# --- 4. Третий сезон -----------------------------------------------------------
-# Ключевое упрощение: регистрация идёт через бота, значит `tg_id` известен с
-# первого сообщения и подделать его нельзя. Весь класс проблем, породивший
-# `claims` и `telegram_map.csv`, в третьем сезоне просто не возникает.
+# --- 4. Season 3 -----------------------------------------------------------------
+# The key simplification: registration goes through the bot, so `tg_id` is known
+# from the first message and cannot be forged. The whole class of problems that
+# produced `claims` and `telegram_map.csv` simply does not arise in season 3.
 #
-# `username` хранится всегда, но **никогда не ключ** — только атрибут и журнал:
-# он освобождается и достаётся другому человеку, и именно на этом во втором
-# сезоне посторонний аккаунт открыл чужой разбор.
+# `username` is always stored but is **never a key** — only an attribute and a
+# log: it gets released and goes to someone else, and that is exactly how an
+# outsider opened another student's review in season 2.
 _V4_SEASON3 = """
 CREATE TABLE IF NOT EXISTS people (
     tg_id      INTEGER PRIMARY KEY,
@@ -138,7 +137,7 @@ CREATE TABLE IF NOT EXISTS people (
     first_seen TEXT NOT NULL DEFAULT (datetime('now')),
     last_seen  TEXT NOT NULL DEFAULT (datetime('now'))
 );
--- Журнал смены username: он меняется, а списки составлялись по нему.
+-- Username change log: it changes, and lists used to be built on it.
 CREATE TABLE IF NOT EXISTS identity_history (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     tg_id    INTEGER NOT NULL,
@@ -159,14 +158,14 @@ CREATE TABLE IF NOT EXISTS s3_tracks (
     ord      INTEGER NOT NULL DEFAULT 0
 );
 
--- Анкета. Черновик живёт здесь, а не в FSM: MemoryStorage не переживает
--- перезапуск контейнера, а анкету на двенадцать шагов заполняют не за минуту.
+-- Application. The draft lives here, not in FSM: MemoryStorage does not survive
+-- a container restart, and a twelve-step form is not filled in a minute.
 CREATE TABLE IF NOT EXISTS s3_applications (
     tg_id      INTEGER PRIMARY KEY,
     status     TEXT NOT NULL DEFAULT 'draft',   -- draft | submitted
     step       TEXT,
-    answers    TEXT NOT NULL DEFAULT '{}',      -- JSON: ответы по шагам
-    rev        INTEGER NOT NULL DEFAULT 0,      -- растёт на каждой правке
+    answers    TEXT NOT NULL DEFAULT '{}',      -- JSON: answers by step
+    rev        INTEGER NOT NULL DEFAULT 0,      -- grows on every edit
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now')),
     submitted_at TEXT
@@ -185,7 +184,7 @@ CREATE TABLE IF NOT EXISTS s3_repos (
     repo     TEXT,
     at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
--- Результат проверки существования — с временем, чтобы кэшировать.
+-- Existence check result, timestamped so it can be cached.
 CREATE TABLE IF NOT EXISTS s3_repo_checks (
     url     TEXT PRIMARY KEY,
     exists_ INTEGER,
@@ -198,7 +197,7 @@ CREATE TABLE IF NOT EXISTS s3_homeworks (
     num       INTEGER,
     title     TEXT NOT NULL,
     body      TEXT NOT NULL,
-    deadline  TEXT,                             -- UTC; минское время показываем
+    deadline  TEXT,                             -- UTC; Minsk time is what we show
     materials TEXT,
     status    TEXT NOT NULL DEFAULT 'draft',    -- draft | published
     created_by INTEGER,
@@ -210,8 +209,8 @@ CREATE TABLE IF NOT EXISTS s3_homework_tracks (
     track_id    TEXT NOT NULL,
     PRIMARY KEY (homework_id, track_id)
 );
--- Выдача домашки. Первичный ключ по (домашка, человек): студент на CV и на DL
--- получает **одно** сообщение, а не два.
+-- Homework delivery. Primary key on (homework, person): a student on both CV
+-- and DL gets **one** message, not two.
 CREATE TABLE IF NOT EXISTS s3_deliveries (
     homework_id INTEGER NOT NULL,
     tg_id       INTEGER NOT NULL,
@@ -229,10 +228,10 @@ CREATE TABLE IF NOT EXISTS s3_flags (
     seen    INTEGER NOT NULL DEFAULT 0
 );
 
--- Очередь синхронизации. Запись анкеты и постановка задания идут **одной
--- транзакцией**: между «анкета сохранена» и «задание создано» нет окна, в
--- которое можно упасть, поэтому «не потерять анкету» выполняется
--- конструктивно, а не надеждой на try/except.
+-- Sync queue. Saving the application and enqueueing the task happen in **one
+-- transaction**: there is no window between "form saved" and "task created" to
+-- crash in, so "do not lose the form" holds by construction rather than by hope
+-- placed in a try/except.
 CREATE TABLE IF NOT EXISTS sync_outbox (
     id       INTEGER PRIMARY KEY AUTOINCREMENT,
     sink     TEXT NOT NULL,                     -- csv | notion
@@ -245,7 +244,7 @@ CREATE TABLE IF NOT EXISTS sync_outbox (
     at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS sync_outbox_pending ON sync_outbox(status, id);
--- Что уже доехало: серия правок схлопывается до последней ревизии.
+-- What already arrived: a run of edits collapses to the last revision.
 CREATE TABLE IF NOT EXISTS sync_state (
     sink        TEXT NOT NULL,
     entity      TEXT NOT NULL,
@@ -268,10 +267,10 @@ async def version(db: aiosqlite.Connection) -> int:
 
 
 def backup(path: Path, at_version: int) -> Path | None:
-    """Копия базы рядом, перед повышением версии.
+    """A copy of the database beside it, before the version goes up.
 
-    Первая копия не перезаписывается: если миграция оказалась кривой и бот
-    перезапустился несколько раз, ценна именно самая ранняя.
+    The first copy is never overwritten: if a migration turned out to be broken
+    and the bot restarted several times, the earliest one is the valuable one.
     """
     dst = path.with_name(f"{path.name}.v{at_version}.bak")
     if dst.exists():
@@ -281,11 +280,11 @@ def backup(path: Path, at_version: int) -> Path | None:
 
 
 async def apply(db: aiosqlite.Connection) -> int:
-    """Догоняет схему до `LATEST`. Возвращает версию, на которой остановились."""
+    """Brings the schema up to `LATEST`. Returns the version it stopped at."""
     have = await version(db)
     for i in range(have, LATEST):
         await db.executescript(MIGRATIONS[i])
-        # PRAGMA не принимает параметры подстановки; `i` — индекс кортежа, не ввод.
+        # PRAGMA takes no bound parameters; `i` is a tuple index, not input.
         await db.execute(f"PRAGMA user_version = {i + 1}")
     await db.commit()
     return LATEST

@@ -1,7 +1,7 @@
-"""Направления третьего сезона из TOML.
+"""Season 3 tracks from TOML.
 
-Файлом, а не константами: преподаватели и число занятий уточняются до самого
-старта, и правка не должна требовать пересборки образа.
+A file rather than constants: teachers and session counts are confirmed right up
+to the start, and an edit must not require rebuilding the image.
 """
 
 from __future__ import annotations

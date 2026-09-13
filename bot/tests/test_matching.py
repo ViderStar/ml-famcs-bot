@@ -1,4 +1,4 @@
-"""Поиск студента: обе половины проверки должны сходиться на одной строке."""
+"""Finding a student: both halves of the check must land on the same row."""
 
 from mlbot.matching import (find_by_fio, find_by_repo, fio_matches,
                             looks_like_repo, normalize_fio)
@@ -33,7 +33,7 @@ def test_fio_confirmation_rejects_a_classmate(course, somebody):
 
 
 def test_excluded_student_is_still_findable(course):
-    """Тем, у кого репозиторий недоступен, тоже нужно объяснение."""
+    """People whose repository is unreachable need an explanation too."""
     excluded = next(s for s in course.students.values() if not s.ok and s.repo)
     assert find_by_repo(course, excluded.repo).key == excluded.key
 

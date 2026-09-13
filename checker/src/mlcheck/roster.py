@@ -1,8 +1,8 @@
-"""Разбор формы сдачи: нормализация ссылок, резолв профилей, проверка доступности.
+"""Parsing the submission form: normalising links, resolving profiles, checking access.
 
-Результат — out/roster.json (участники анализа) и out/excluded.csv (исключённые).
-По решению заказчика недоступный репозиторий — терминальный статус: такой студент
-не участвует в анализе и не получает сертификат.
+Produces out/roster.json (people in the analysis) and out/excluded.csv (those
+left out). By the teacher's decision an unreachable repository is terminal: such
+a student is out of the analysis and gets no certificate.
 """
 
 from __future__ import annotations
@@ -17,13 +17,13 @@ from pathlib import Path
 from . import gh
 from .config import Config, load
 
-# Ссылки студентов приходят в самых разных видах: без схемы, с .git,
-# с /tree/main, с завершающим слэшем, иногда это ссылка на профиль.
+# Student links arrive in every shape: with no scheme, with .git, with
+# /tree/main, with a trailing slash, sometimes pointing at a profile.
 _SCHEME = re.compile(r"^https?://", re.I)
 _HOST = re.compile(r"^(www\.)?github\.com/", re.I)
 _TREE = re.compile(r"/(tree|blob)/.*$")
 
-# Насколько имя репозитория похоже на «репозиторий этого курса».
+# How much the repository name looks like "this course's repository".
 _NAME_HINTS = (
     ("ml-course-homework", 100),
     ("ml_course_homework", 100),
@@ -47,7 +47,7 @@ class Student:
     slug: str | None = None          # owner/repo
     owner: str | None = None
     repo: str | None = None
-    key: str | None = None           # ключ файлов отчётов
+    key: str | None = None           # key used for report files
     status: str = "unknown"          # ok | missing_repo | no_url | owner_missing
     reason: str = ""
     pushed_at: str | None = None
@@ -62,7 +62,7 @@ class Student:
 
 
 def normalize_url(url: str) -> str:
-    """Приводит ссылку к виду owner/repo или owner (если дан профиль)."""
+    """Normalises a link to owner/repo, or owner if a profile was given."""
     u = (url or "").strip()
     u = _SCHEME.sub("", u)
     u = _HOST.sub("", u)
@@ -83,7 +83,7 @@ def _list_owner_repos(owner: str) -> list[dict]:
 
 
 def _resolve_profile(st: Student) -> None:
-    """Студент дал ссылку на профиль — ищем среди его репозиториев подходящий."""
+    """The student gave a profile link — look for a suitable repository among theirs."""
     repos = _list_owner_repos(st.owner)
     st.owner_repos = [r["name"] for r in repos]
     if not repos:
@@ -104,13 +104,13 @@ def _resolve_profile(st: Student) -> None:
 
 
 def _probe(st: Student) -> Student:
-    """Проверяет доступность репозитория, при неудаче собирает контекст владельца."""
+    """Checks the repository is reachable; on failure collects context about the owner."""
     if not st.slug and not st.owner:
         st.status = "no_url"
         st.reason = "в форме нет ссылки"
         return st
 
-    if st.slug is None:  # ссылка на профиль
+    if st.slug is None:  # a profile link
         _resolve_profile(st)
         if st.status == "missing_repo":
             return st
@@ -119,7 +119,7 @@ def _probe(st: Student) -> Student:
     if meta is None:
         st.status = "missing_repo"
         st.reason = "репозиторий удалён, приватен или переименован"
-        # Список репозиториев владельца — чтобы вы могли глазами поймать переименование.
+        # The owner's repository list — so a rename can be spotted by eye.
         if not st.owner_repos:
             owner_meta = gh.try_api(f"users/{st.owner}")
             if owner_meta is None:
@@ -130,7 +130,7 @@ def _probe(st: Student) -> Student:
         return st
 
     st.status = "ok"
-    st.owner = meta["owner"]["login"]  # каноничный регистр логина
+    st.owner = meta["owner"]["login"]  # the canonical case of the login
     st.repo = meta["name"]
     st.slug = meta["full_name"]
     st.pushed_at = meta.get("pushed_at")
@@ -143,7 +143,7 @@ def read_csv(path: Path) -> list[Student]:
     students: list[Student] = []
     with path.open(encoding="utf-8-sig", newline="") as fh:
         for row in csv.DictReader(fh):
-            # Заголовки в выгрузке формы приходят с висячими пробелами.
+            # Headers in the form export arrive with trailing spaces.
             row = {(k or "").strip(): (v or "").strip() for k, v in row.items()}
             fio = row.get("Фамилия Имя", "")
             url = row.get("URL", "")
@@ -157,13 +157,13 @@ def read_csv(path: Path) -> list[Student]:
                 st.repo = st.repo.split("/")[0]
                 st.slug = f"{st.owner}/{st.repo}"
             else:
-                st.owner = norm  # ссылка на профиль, репозиторий ищем позже
+                st.owner = norm  # a profile link; the repository is found later
             students.append(st)
     return students
 
 
 def _assign_keys(students: list[Student]) -> None:
-    """Ключ файлов отчётов — логин; при коллизии дополняем именем репозитория."""
+    """Report file key: the login, extended with the repository name on collision."""
     seen: dict[str, int] = {}
     for st in students:
         base = (st.owner or re.sub(r"\W+", "_", st.fio) or "unknown").lower()

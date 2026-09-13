@@ -1,8 +1,8 @@
-"""Markdown каталога → HTML телеграма и нарезка длинных сообщений.
+"""Catalog markdown → Telegram HTML, and splitting long messages.
 
-Telegram понимает узкий набор тегов и падает на невалидной разметке, поэтому
-сначала прячем блоки кода, экранируем всё остальное и только потом расставляем
-теги. Нарезка не разрывает блок кода пополам.
+Telegram understands a narrow set of tags and fails on invalid markup, so code
+blocks are hidden first, everything else is escaped, and only then are tags put
+back. Splitting never tears a code block in half.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import html
 import re
 
 LIMIT = 4096
-SAFE = 3900          # запас под подпись и кнопки
+SAFE = 3900          # headroom for a caption and buttons
 
 _FENCE = re.compile(r"```(\w*)\n(.*?)```", re.S)
 _INLINE_CODE = re.compile(r"`([^`\n]+)`")
@@ -23,7 +23,7 @@ _BULLET = re.compile(r"^[-*]\s+", re.M)
 
 
 def to_html(md: str) -> str:
-    """Переводит markdown статьи в разметку, которую принимает Telegram."""
+    """Converts article markdown into the markup Telegram accepts."""
     blocks: list[str] = []
 
     def stash(m: re.Match) -> str:
@@ -36,7 +36,7 @@ def to_html(md: str) -> str:
     text = _HEADING.sub(lambda m: f"<b>{m.group(1)}</b>", text)
     text = _BOLD.sub(lambda m: f"<b>{m.group(1)}</b>", text)
     text = _INLINE_CODE.sub(lambda m: f"<code>{m.group(1)}</code>", text)
-    # Ссылки: markdown-скобки после экранирования выглядят как обычный текст.
+    # Links: after escaping, markdown brackets look like plain text.
     text = _LINK.sub(lambda m: f'<a href="{m.group(2)}">{m.group(1)}</a>', text)
     text = _QUOTE.sub(lambda m: f"<i>{m.group(1)}</i>", text)
     text = _BULLET.sub("• ", text)
@@ -49,7 +49,7 @@ def to_html(md: str) -> str:
 
 
 def _split_plain(text: str, limit: int) -> list[str]:
-    """Режет кусок без блоков кода по абзацам, затем по строкам."""
+    """Splits a code-free chunk by paragraphs, then by lines."""
     if len(text) <= limit:
         return [text]
     parts, current = [], ""
@@ -73,13 +73,13 @@ def _split_plain(text: str, limit: int) -> list[str]:
 
 
 def split(text: str, limit: int = SAFE) -> list[str]:
-    """Нарезает готовый HTML на сообщения, не разрывая <pre>."""
+    """Splits ready HTML into messages without breaking a <pre>."""
     if len(text) <= limit:
         return [text]
 
     chunks: list[str] = []
     buffer = ""
-    # Куски вне <pre> можно резать свободно, сам <pre> — только целиком.
+    # Chunks outside <pre> can be split freely; a <pre> only goes whole.
     for piece in re.split(r"(<pre>.*?</pre>)", text, flags=re.S):
         if not piece:
             continue
@@ -88,7 +88,7 @@ def split(text: str, limit: int = SAFE) -> list[str]:
                 chunks.append(buffer.strip())
                 buffer = ""
             if len(piece) > limit:
-                # Гигантский блок кода — отдаём как есть, обрезав хвост.
+                # A giant code block — send it as is, with the tail cut off.
                 chunks.append(piece[: limit - len("\n…</pre>")] + "\n…</pre>")
                 continue
             buffer += piece

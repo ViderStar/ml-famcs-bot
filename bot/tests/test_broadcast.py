@@ -1,8 +1,8 @@
-"""Рассылки: заморозка списка, возобновление, двойной клик, замок песочницы.
+"""Broadcasts: freezing the list, resuming, double clicks, the sandbox lock.
 
-Ни одна проверка не отправляет ничего наружу: стенд перехватывает вызовы на
-уровне сессии телеграма, а предохранитель в боевом режиме выключается только
-переменной окружения.
+No check sends anything outside: the bench intercepts calls at the Telegram
+session level, and the safety catch is released only through an environment
+variable.
 """
 
 import dataclasses
@@ -26,24 +26,24 @@ async def store(tmp_path):
 
 @pytest.fixture
 def live(cfg):
-    """Тот же конфиг с выключенным предохранителем — боевой режим."""
+    """The same config with the safety catch off — live mode."""
     return dataclasses.replace(cfg, safe_mode=False)
 
 
 @pytest.fixture
 async def flock(course, store):
-    """Десять привязанных студентов, четверо с сертификатом."""
+    """Ten bound students, four of them with a certificate."""
     keys = [s.key for s in list(course.active)[:10]]
     for i, key in enumerate(keys, start=100):
         await store.bind(i, key, None, None)
     return keys
 
 
-# --- аудитории --------------------------------------------------------------------
+# --- audiences ----------------------------------------------------------------------
 
 async def test_the_certificate_audience_matches_the_standalone_script(live, course, store,
                                                                       flock):
-    """Одна выборка, а не две расходящиеся: скрипт `announce` берёт её отсюда же."""
+    """One query, not two that drift apart: the `announce` script takes it from here."""
     from mlbot.announce import recipients
 
     bound = {b.student_key: b.tg_id for b in await store.all_bindings()}
@@ -53,7 +53,7 @@ async def test_the_certificate_audience_matches_the_standalone_script(live, cour
 
 
 async def test_the_sandbox_hides_every_real_audience(cfg, live):
-    """Второй замок: даже при дырке в предохранителе списка студентов не достать."""
+    """The second lock: even with a hole in the catch, the student list is out of reach."""
     assert cfg.safe_mode
     assert {a.id for a in audiences.available(cfg)} == {"me", "demo"}
     assert {"all", "cert", "nocert"} <= {a.id for a in audiences.available(live)}
@@ -65,13 +65,13 @@ async def test_unreachable_people_are_counted_not_hidden(live, course, store, fl
     assert len(unreachable) == len(course.active) - 10
 
 
-# --- отправка ---------------------------------------------------------------------
+# --- sending ------------------------------------------------------------------------
 
 async def test_the_list_is_frozen_at_confirmation(live, course, store, flock):
-    """Привязавшийся после подтверждения не должен попасть в добавку.
+    """Someone who bound after confirmation must not be swept in.
 
-    Иначе отчёт «отправлено 10 из 10» соврал бы, а человек получил бы письмо,
-    которого преподаватель не подтверждал.
+    Otherwise the report "sent 10 of 10" would lie, and a person would get a
+    letter the teacher never confirmed.
     """
     targets, _ = await audiences.resolve("all", live, course, store)
     cast_id = await store.create_broadcast(
@@ -101,7 +101,7 @@ async def test_resume_sends_exactly_the_remainder(live, course, store, flock):
 
     await store.start_broadcast(cast_id)
     stats = await sender.run(FakeBot(), store, cast_id)
-    assert len(sent) == 6, "возобновление обязано дослать ровно остаток"
+    assert len(sent) == 6, "resuming must send exactly the remainder"
     assert stats["sent"] == 10
     assert not set(sent) & {tg for tg, _ in targets[:4]}
 
@@ -123,7 +123,7 @@ async def test_a_restart_marks_a_running_broadcast_as_interrupted(live, course, 
     await store.start_broadcast(cast_id)
     assert await store.stall_running() == [cast_id]
     assert (await store.broadcast(cast_id))["status"] == "stalled"
-    # …и её можно продолжить, а не только посмотреть.
+    # ...and it can be resumed, not merely inspected.
     assert await store.start_broadcast(cast_id) is True
 
 
@@ -144,23 +144,23 @@ async def test_blocking_the_bot_does_not_stall_the_whole_broadcast(live, course,
     await store.start_broadcast(cast_id)
     stats = await sender.run(FakeBot(), store, cast_id)
     assert stats["sent"] == 9 and stats["blocked"] == 1
-    # Заблокировавший не остаётся «в ожидании»: повторять бессмысленно.
+    # Someone who blocked the bot does not stay "pending": retrying is pointless.
     assert not await store.pending_targets(cast_id)
 
 
-# --- через интерфейс ---------------------------------------------------------------
+# --- through the interface ------------------------------------------------------------
 
 async def test_formatting_survives_the_trip_through_the_bot(live, course, store, flock):
-    """`message.text` терял жирный и ссылки — писать надо `html_text`."""
+    """`message.text` lost bold and links — `html_text` is what to write."""
     bench = Bench(live, course, store, user_id=ADMIN_ID, username=ADMIN_NAME)
     await bench.press(core.cb("a.cast.to", "all"))
     from aiogram.types import MessageEntity
     msg = await bench.send("важное")
-    assert msg  # черновик создан
+    assert msg  # the draft was created
     cast = (await store.recent_broadcasts(1))[0]
     assert cast["audience"] == "all" and cast["status"] == "draft"
 
-    # Разметку подкладываем так же, как её кладёт телеграм: entities поверх текста.
+    # Formatting is supplied the way Telegram supplies it: entities over the text.
     bench2 = Bench(live, course, store, user_id=ADMIN_ID, username=ADMIN_NAME)
     await bench2.press(core.cb("a.cast.to", "all"))
     out = await bench2.send("важное слово",
@@ -174,15 +174,15 @@ async def test_in_the_sandbox_the_wizard_refuses_a_real_audience(cfg, course, st
     bench = Bench(cfg, course, store, user_id=ADMIN_ID, username=ADMIN_NAME)
     out = await bench.press(core.cb("a.cast.to", "all"))
     assert not [s for s in out if s.api.startswith("Send")], (
-        "в песочнице настоящая аудитория не должна открываться даже по прямой ссылке")
+        "in the sandbox a real audience must not open even by direct link")
     assert await store.recent_broadcasts(1) == []
 
 
 async def test_a_sandbox_broadcast_reaches_the_teacher_and_nobody_else(cfg, course, store):
-    """Сквозная проверка требования «пока никому ничего не отправлять».
+    """End-to-end check of the "send nobody anything yet" requirement.
 
-    Вымышленный аккаунт — не админ, поэтому письмо к нему обязано развернуться
-    на преподавателя с пометкой, а не уйти по адресу.
+    A fictional account is not an admin, so a letter to it must be redirected to
+    the teacher with a tag rather than delivered.
     """
     from mlbot.safety import BADGE
 
@@ -200,8 +200,8 @@ async def test_a_sandbox_broadcast_reaches_the_teacher_and_nobody_else(cfg, cour
 
     letters = [s for s in bench.session.calls
                if s.api == "SendMessage" and "проверка связи" in s.text]
-    assert letters, "письмо не отправилось вовсе"
+    assert letters, "the letter was not sent at all"
     for letter in letters:
-        assert letter.chat_id == ADMIN_ID, "в песочнице письмо ушло постороннему"
+        assert letter.chat_id == ADMIN_ID, "in the sandbox the letter reached an outsider"
         assert BADGE in letter.text and "4242" in letter.text
     assert (await store.broadcast(cast_id))["sandbox"] == 1

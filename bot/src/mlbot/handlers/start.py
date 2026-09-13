@@ -1,8 +1,8 @@
-"""Онбординг и привязка аккаунта к записи студента.
+"""Onboarding and binding an account to a student record.
 
-Проверка двухфакторная: нужны и ссылка на репозиторий, и ФИО, и они должны
-указывать на одну строку формы. Порядок любой — что прислали первым, то и
-считаем первым фактором.
+The check has two factors: a repository link and a name, and they must point at
+the same form row. Order does not matter — whatever arrives first counts as the
+first factor.
 """
 
 from __future__ import annotations
@@ -26,13 +26,13 @@ from ..store import Store
 
 router = Router()
 
-# Обычный текст, а не команда. Без этого фильтра состояние онбординга съедало
-# и /admin с /help: они матчились как текст и до своих обработчиков не доходили.
+# Plain text, not a command. Without this filter the onboarding state swallowed
+# /admin and /help too: they matched as text and never reached their handlers.
 _PLAIN = F.text & ~F.text.startswith("/")
 
 
 def _who(user) -> dict:
-    """Кто написал: по одному id администратора не сопоставить с человеком."""
+    """Who wrote: an admin id alone cannot be matched to a person."""
     return {"username": user.username, "name": user.full_name}
 
 
@@ -56,10 +56,11 @@ async def start(message: Message, state: FSMContext, course: Course,
             reply_markup=menu.keyboard_for(cfg, message.from_user, student),
         )
         return
-    # Администратор — это преподаватель, записи студента у него нет, и гнать
-    # его через привязку незачем: он бы застрял в онбординге без выхода.
-    # Состояние онбординга ему не ставим: иначе «Тест ФИО» ушёл бы в поиск по
-    # ФИО как попытка привязаться. Глазами студента он смотрит через тестер-режим.
+    # An admin is a teacher with no student record, and there is no point
+    # pushing them through binding: they would be stuck in onboarding with no way
+    # out. No onboarding state is set for them either: otherwise "Тест <name>"
+    # would land in the name search as a binding attempt. They look through a
+    # student's eyes via tester mode.
     if cfg.is_admin(message.from_user.id, message.from_user.username):
         from .admin import test_examples
         cert, fail = test_examples(course)
@@ -70,9 +71,9 @@ async def start(message: Message, state: FSMContext, course: Course,
         )
         return
 
-    # Форма регистрации на курс даёт username → ФИО, так что большинству
-    # достаточно нажать «да». Молча не привязываем: username мог освободиться
-    # и достаться другому человеку.
+    # The course registration form gives username → name, so for most people one
+    # "yes" is enough. We never bind silently: a username may have been released
+    # and claimed by someone else.
     guess = find_by_username(course, message.from_user.username)
     if guess and not await store.binding_of_student(guess.key):
         await state.set_state(Onboarding.confirming_self)
@@ -114,7 +115,7 @@ async def confirm_self_no(call: CallbackQuery, state: FSMContext) -> None:
 
 async def _notify_admins(bot, cfg: Config, store: Store, student, actor,
                          expected: str | None, claim_id: int) -> None:
-    """Сообщить администраторам о заявке. По username id не знаем — только по ADMIN_IDS."""
+    """Tell the admins about a claim. A username gives no id — only ADMIN_IDS does."""
     reason = (f"В форме закреплён: @{escape(expected)} — <b>не совпадает</b>"
               if expected else
               "В форме регистрации телеграма нет — сверить не с чем")
@@ -134,10 +135,10 @@ async def _notify_admins(bot, cfg: Config, store: Store, student, actor,
 
 async def _finish(message: Message, state: FSMContext, store: Store, cfg: Config,
                   course: Course, student, actor=None) -> None:
-    """Привязывает аккаунт и показывает меню.
+    """Binds the account and shows the menu.
 
-    `actor` нужен там, где решение пришло нажатием кнопки: у сообщения бота
-    `from_user` — это сам бот, а привязывать надо того, кто нажал.
+    `actor` is needed where the decision arrived as a button press: on the bot's
+    own message `from_user` is the bot, while the one to bind is whoever pressed.
     """
     actor = actor or message.from_user
     taken = await store.binding_of_student(student.key)
@@ -147,12 +148,12 @@ async def _finish(message: Message, state: FSMContext, store: Store, cfg: Config
                              reply_markup=support(cfg.support_username))
         return
 
-    # Мгновенно привязываем только там, где username доказывает владение:
-    # он принадлежит аккаунту, который пишет боту, и совпадает с закреплённым за
-    # записью в форме регистрации. ФИО и ссылка на репозиторий доказательством не
-    # являются — и то и другое известно однокурсникам, и в первую же неделю
-    # посторонний аккаунт так открыл чужой разбор. Всё остальное ждёт человека:
-    # и записи с другим username, и те 47, где username в форме нет вовсе.
+    # Instant binding only where the username proves ownership: it belongs to the
+    # account writing to the bot and matches the one recorded for that record in
+    # the registration form. A name and a repository link are not proof —
+    # classmates know both, and in the very first week an outsider used them to
+    # open someone else's review. Everything else waits for a human: records with
+    # a different username, and the 47 with no username in the form at all.
     expected = course.expected_username(student.key)
     if not expected or (actor.username or "").lower() != expected.lower():
         claim_id = await store.add_claim(actor.id, student.key, actor.username,
@@ -181,7 +182,7 @@ async def _finish(message: Message, state: FSMContext, store: Store, cfg: Config
 @router.message(Onboarding.confirming_self, _PLAIN)
 async def typed_instead_of_confirming(message: Message, state: FSMContext, course: Course,
                                       store: Store, cfg: Config) -> None:
-    """Вместо кнопки прислали ссылку или ФИО — значит, узнали не того."""
+    """They sent a link or a name instead of pressing the button — we recognised the wrong person."""
     await state.set_state(Onboarding.waiting_id)
     await got_identifier(message, state, course, store, cfg)
 
@@ -190,9 +191,10 @@ async def typed_instead_of_confirming(message: Message, state: FSMContext, cours
 async def got_identifier(message: Message, state: FSMContext, course: Course,
                          store: Store, cfg: Config) -> None:
     text = message.text.strip()
-    # Нажали кнопку меню, а не прислали ссылку — отдаём событие дальше, тому,
-    # кому кнопка принадлежит. Список берётся из реестра узлов: захардкоженный
-    # кортеж разошёлся бы с меню молча, и админ снова застрял бы в онбординге.
+    # They pressed a menu button rather than sending a link — pass the event on to
+    # whoever owns that button. The list comes from the node registry: a hardcoded
+    # tuple would drift from the menu silently, and an admin would be stuck in
+    # onboarding again.
     if text in menu.root_labels():
         raise SkipHandler
 

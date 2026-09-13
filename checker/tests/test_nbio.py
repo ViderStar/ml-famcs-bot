@@ -1,8 +1,9 @@
-"""Поведение парсера ноутбуков.
+"""Notebook parser behaviour.
 
-Главный инвариант курса: `# YOUR CODE HERE` студенты не удаляют, а дописывают код
-под ним. На корпусе таких ячеек 3744 против 23 действительно пустых, поэтому
-трактовка маркера как «не выполнено» завалила бы почти весь поток.
+The main invariant of this course: students do not delete `# YOUR CODE HERE`,
+they write code under it. Across the corpus there are 3744 such cells against 23
+genuinely empty ones, so treating the marker as "not done" would fail almost the
+whole stream.
 """
 
 from conftest import error_output, image_output, text_output
@@ -15,7 +16,7 @@ def test_marker_with_code_under_it_is_not_empty(write_nb):
     nb = nbio.load(p)
     cell = nb.code_cells[0]
     assert cell.has_marker
-    assert not cell.is_empty, "ячейка с кодом под маркером не должна считаться пустой"
+    assert not cell.is_empty, "a cell with code under the marker must not count as empty"
 
 
 def test_marker_alone_is_empty(write_nb):
@@ -56,7 +57,7 @@ def test_zero_byte_file_reports_error(tmp_path):
 
 
 def test_markdown_saved_as_ipynb_reports_error(tmp_path):
-    """Реальный случай: студент переименовал README.md в .ipynb."""
+    """A real case: a student renamed README.md to .ipynb."""
     p = tmp_path / "hw01.ipynb"
     p.write_text("# HW01 — Настройка окружения\n\nтекст задания\n", encoding="utf-8")
     assert not nbio.load(p).ok
@@ -90,10 +91,10 @@ def test_llm_text_strips_images_but_keeps_tracebacks(write_nb):
     ])
     text, truncated = nbio.to_llm_text(nbio.load(p), max_chars=100_000)
     assert not truncated
-    assert "iVBORw0KGgo" not in text, "base64 картинки обязаны вырезаться"
+    assert "iVBORw0KGgo" not in text, "base64 images must be stripped"
     assert "[график]" in text
-    assert "ValueError: boom" in text, "трейсбек — самый ценный сигнал, он остаётся"
-    assert "\x1b[" not in text, "ANSI-раскраска должна быть снята"
+    assert "ValueError: boom" in text, "a traceback is the most valuable signal, it stays"
+    assert "\x1b[" not in text, "ANSI colouring must be removed"
 
 
 def test_llm_text_truncates_and_flags(write_nb):

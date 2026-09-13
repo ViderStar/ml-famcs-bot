@@ -1,14 +1,14 @@
-"""Вымышленные студенты для проверки экранов без единого настоящего сообщения.
+"""Invented students for walking the screens without a single real message.
 
-Четыре сущности покрывают все ветки: выпускник с сертификатом и портретом,
-недобравший с критичными замечаниями, исключённый (репозиторий недоступен) и
-привязанный, который не сдал ничего.
+Four records cover every branch: a graduate with a certificate and a portrait,
+someone who fell short with critical findings, an excluded student (unreachable
+repository), and a bound one who submitted nothing.
 
-Коды замечаний берутся из настоящего каталога `checker/catalog`, иначе разбор
-у демо-студента отрисуется пустым и проверка ничего не покажет. Что коды
-существуют, закреплено тестом `test_demo.py`.
+Finding codes come from the real `checker/catalog`, otherwise a demo student's
+review renders empty and the walkthrough shows nothing. That the codes exist is
+pinned by `test_demo.py`.
 
-Запуск:  uv run python demo/make_demo.py
+Run:  uv run python demo/make_demo.py
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ NO_TEXT = finding("common.no_conclusions", "major", "Нет текстовых �
 
 
 def graduate():
-    """Выпускник: сертификат, фото, портрет, все экраны заполнены."""
+    """A graduate: certificate, photo, portrait, every screen filled."""
     hws = {}
     for i, hw_id in enumerate(HW):
         if hw_id == "hw07":
@@ -94,7 +94,7 @@ def graduate():
 
 
 def borderline():
-    """Недобравший: часть зачтена, есть критичные замечания и недобор пунктов."""
+    """Fell short: some topics passed, critical findings and too few items."""
     hws = {}
     for i, hw_id in enumerate(HW):
         if i < 5:
@@ -117,7 +117,7 @@ def borderline():
 
 
 def excluded():
-    """Репозиторий недоступен: экран EXCLUDED."""
+    """Unreachable repository: the EXCLUDED screen."""
     return {
         "key": "demo-lost", "fio": "Приватов Игнат (демо)",
         "repo": "https://github.com/demo-lost/hidden",
@@ -129,7 +129,7 @@ def excluded():
 
 
 def empty():
-    """Привязан, но не сдал ничего: пустые состояния всех экранов."""
+    """Bound but submitted nothing: the empty state of every screen."""
     return {
         "key": "demo-quiet", "fio": "Тихонов Савва (демо)",
         "repo": "https://github.com/demo-quiet/ml-course",

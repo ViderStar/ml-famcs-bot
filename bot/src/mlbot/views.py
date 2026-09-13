@@ -1,6 +1,7 @@
-"""Сборка текстов экранов. Чистые функции: ни телеграма, ни ввода-вывода.
+"""Screen text assembly. Pure functions: no Telegram, no I/O.
 
-Вынесено из обработчиков, чтобы прогонять рендер по всему потоку в тестах.
+Moved out of the handlers so the rendering can be run over the whole stream in
+tests.
 """
 
 from __future__ import annotations
@@ -29,16 +30,16 @@ def sorted_findings(hw: dict | None) -> list[dict]:
 
 
 def points_needed(course: Course, hw: dict) -> int:
-    """Сколько пунктов задания нужно было закрыть.
+    """How many assignment items had to be closed.
 
-    Округление вверх: при пороге 70% от 9 пунктов нужно семь, а не шесть с
-    хвостиком. Проверка сравнивает долю с порогом, здесь та же граница, но
-    выраженная в пунктах.
+    Rounded up: at a 70% threshold on 9 items you need seven, not six and a bit.
+    The grader compares a ratio with the threshold; this is the same boundary
+    expressed in items.
 
-    Поправка в 1e-9 — страховка от двоичного округления на ровной границе:
-    при нынешних 70% расхождений нет, но, скажем, 0.28 × 25 даёт
-    7.000000000000001, и бот потребовал бы восемь пунктов там, где проверка
-    засчитывает семь. Цифра в боте и решение проверки должны совпадать всегда.
+    The 1e-9 nudge guards against binary rounding right on the boundary: at
+    today's 70% there is no discrepancy, but 0.28 x 25 gives 7.000000000000001,
+    and the bot would demand eight items where the grader counts seven. The
+    number in the bot and the grader's decision must always agree.
     """
     from mlcheck.report import points_needed_for
 
@@ -46,12 +47,12 @@ def points_needed(course: Course, hw: dict) -> int:
 
 
 def blockers(course: Course, hw: dict) -> list[dict]:
-    """Что именно закрыло зачёт по теме.
+    """What exactly cost the topic its pass.
 
-    Повторяет решение проверки дословно: заваливают только критичные
-    замечания и недобор обязательных пунктов. Замечания уровня «серьёзное» и
-    «мелкое» на зачёт не влияют никогда — студенту важно это видеть, иначе
-    список из тридцати замечаний читается как тридцать причин незачёта.
+    Repeats the grader's decision verbatim: only critical findings and too few
+    required items fail a topic. Major and minor findings never affect the
+    verdict — the student needs to see that, otherwise a list of thirty findings
+    reads like thirty reasons for failure.
     """
     out: list[dict] = []
     if hw["required_total"]:
@@ -59,9 +60,9 @@ def blockers(course: Course, hw: dict) -> list[dict]:
         if hw["required_passed"] < need:
             out.append({
                 "kind": "points",
-                # Полный текст нужен там, где цифр рядом нет — в списке
-                # «из-за чего не зачтены работы». В карточке темы они уже
-                # напечатаны строкой выше, поэтому там берётся short.
+                # The full text is needed where no numbers stand nearby — in the
+                # "why work failed" list. On the topic card they are already
+                # printed a line above, so that one takes `short`.
                 "text": (f"Закрыто {hw['required_passed']} из {hw['required_total']} "
                          f"пунктов задания, а нужно не меньше {need}"),
                 "short": "Пунктов задания закрыто меньше необходимого",
@@ -74,12 +75,12 @@ def blockers(course: Course, hw: dict) -> list[dict]:
 
 
 def is_blocking(f: dict) -> bool:
-    """Влияло ли это замечание на зачёт по теме."""
+    """Whether this finding affected the topic's verdict."""
     return f["severity"] == "critical"
 
 
 def verdict_block(course: Course, hw: dict) -> list[str]:
-    """Абзац «почему не зачтено» либо «что не повлияло» — для карточки темы."""
+    """The "why it failed" or "what did not matter" paragraph — for the topic card."""
     findings = hw.get("findings", [])
     reasons = blockers(course, hw)
 
@@ -113,7 +114,7 @@ def verdict_block(course: Course, hw: dict) -> list[str]:
 
 
 def failed_topics(course: Course, student: Student) -> list[tuple[str, list[dict]]]:
-    """Незачтённые зачётные темы вместе с причинами, по порядку тем."""
+    """Failed graded topics together with their reasons, in topic order."""
     out = []
     for hw_id in sorted(course.graded_ids):
         hw = student.hw(hw_id)
@@ -137,8 +138,8 @@ def results_text(course: Course, student: Student) -> str:
         f"Замечания: {SEVERITY_ICON['critical']} {sev['critical']}   "
         f"{SEVERITY_ICON['major']} {sev['major']}   {SEVERITY_ICON['minor']} {sev['minor']}",
     ]
-    # Самый частый вопрос: «залил все домашки, почему зачтено меньше».
-    # Отвечаем сразу, не заставляя открывать каждую тему по очереди.
+    # The most common question: "I uploaded every homework, why did fewer pass?"
+    # Answer it straight away instead of making them open each topic in turn.
     gap = failed_topics(course, student)
     if gap:
         lines += ["", f"<b>Не зачтено работ: {len(gap)}.</b> Причина у каждой своя — "
@@ -198,7 +199,7 @@ WEIGHT = {"critical": 3, "major": 2, "minor": 1}
 
 
 def why_paragraph(art) -> str:
-    """Абзац «Почему это важно» из статьи — самое полезное для рефлексии место."""
+    """The "why it matters" paragraph from the article — the most useful part for reflection."""
     for para in art.body.split("\n\n"):
         if para.startswith("**Почему это важно.**"):
             return para.replace("**Почему это важно.**", "", 1).strip()
@@ -212,7 +213,7 @@ def _prefer_handbook(links: list[tuple[str, str]]) -> list[tuple[str, str]]:
 
 
 def best_link(course: Course, art, hw_id: str) -> tuple[str, str] | None:
-    """Ссылка «почитать»: Хендбук из статьи, иначе из статей темы, иначе любая."""
+    """A "read more" link: the Handbook from the article, else from the topic's articles, else any."""
     for pool in (art.links, course.reading(art.hw if art.hw != "common" else hw_id)):
         ranked = _prefer_handbook(pool)
         if ranked:
@@ -221,11 +222,11 @@ def best_link(course: Course, art, hw_id: str) -> tuple[str, str] | None:
 
 
 def plan_text(course: Course, student: Student) -> tuple[str, list[tuple[str, str]]]:
-    """«Что подтянуть»: причины незачёта → методология → гигиена одной строкой.
+    """"What to improve": failure reasons → methodology → hygiene in one line.
 
-    Раньше сюда попадало «часть ячеек не выполнена» — верно, но для рефлексии
-    бесполезно. Теперь советы только по ML/DS-методологии со ссылками на
-    Хендбук; дисциплина работы с ноутбуком упоминается одной фразой.
+    This used to surface "some cells were not executed" — true, but useless for
+    reflection. Now the advice is ML/DS methodology only, with Handbook links;
+    notebook discipline gets a single sentence.
     """
     lines: list[str] = []
     links: list[tuple[str, str]] = []
@@ -240,8 +241,8 @@ def plan_text(course: Course, student: Student) -> tuple[str, list[tuple[str, st
                 lines.append(f"   {mark} {escape(r['text'])}")
             lines.append("")
 
-    # Взвешенные коды: только методология. Для общих кодов помним тему,
-    # чтобы подобрать ссылку по ней.
+    # Weighted codes: methodology only. For common codes the topic is kept so a
+    # link can be picked by it.
     weight: dict[str, int] = {}
     topic_of: dict[str, str] = {}
     hygiene: dict[str, int] = {}
@@ -258,8 +259,9 @@ def plan_text(course: Course, student: Student) -> tuple[str, list[tuple[str, st
 
     growth = (student.portrait or {}).get("growth") or []
     if growth:
-        # Портрет за курс написан моделью по дайджесту всех работ — он точнее
-        # подсчёта по кодам. Ссылки всё равно фильтруем по каталогу.
+        # The course portrait was written by the model from a digest of all the
+        # work — more accurate than counting codes. Links are still filtered
+        # against the catalog.
         lines += ["🎯 <b>Что подтянуть в теории и практике</b>", ""]
         for i, g in enumerate(growth[:5], start=1):
             topic = g.get("topic", "")
@@ -294,7 +296,7 @@ def plan_text(course: Course, student: Student) -> tuple[str, list[tuple[str, st
                     links.append(link)
             lines.append("")
 
-    # Незачтённые темы — глава Хендбука по каждой, чтобы было с чего начать.
+    # Failed topics get a Handbook chapter each, so there is somewhere to start.
     chapters = []
     for hw_id, _ in gap:
         ranked = _prefer_handbook(course.reading(hw_id))
@@ -324,11 +326,7 @@ def plan_text(course: Course, student: Student) -> tuple[str, list[tuple[str, st
 
 
 def strengths_text(course: Course, student: Student) -> str:
-    """Сильные стороны за весь курс — по каждой теме, где проверяющий их отметил.
-
-    Временная замена портрету за курс: до него показываем всё, что уже есть,
-    а не одну фразу по первой домашке.
-    """
+    """Strengths across the course — for every topic where the grader noted them."""
     pairs = student.strengths()
     if not pairs and not student.portrait:
         return ("💪 <b>Сильные стороны</b>\n\nПроверяющий пока ничего не отметил — "
@@ -352,8 +350,8 @@ def finding_text(course: Course, hw_id: str, f: dict, seen: int = 0,
     icon = SEVERITY_ICON.get(f["severity"], "•")
     parts = [f"{icon} <b>{escape(f['title'])}</b>",
              f"<i>{hw_id} · {escape(course.title(hw_id))}</i>"]
-    # Прямо говорим, стоило ли это замечание зачёта: список из тридцати
-    # замечаний иначе читается как тридцать причин незачёта.
+    # Say outright whether this finding cost the pass: otherwise a list of thirty
+    # findings reads like thirty reasons for failure.
     if hw is not None and hw.get("status") == "failed":
         parts.append("🚫 <b>Из-за этого тема не зачтена</b>" if is_blocking(f)
                      else "На зачёт это не влияло — но пригодится")
